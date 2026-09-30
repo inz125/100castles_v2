@@ -37,3 +37,24 @@ export function groupByRegion(targets: readonly Castle[], book: StampBook): Regi
     return { region, castles: inRegion, progress: progressOf(inRegion, book) }
   })
 }
+
+export type StampFilter = 'all' | 'unstamped' | 'stamped'
+
+/**
+ * 地方ごとの城を絞り込む。城が残らない地方は除く。
+ * 地方の進捗は絞り込み前（地方全体）のまま残す。
+ */
+export function filterGroups(
+  groups: readonly RegionGroup[],
+  book: StampBook,
+  filter: StampFilter,
+): RegionGroup[] {
+  if (filter === 'all') return [...groups]
+  const wantStamped = filter === 'stamped'
+  return groups
+    .map((g) => ({
+      ...g,
+      castles: g.castles.filter((c) => isStamped(getRecord(book, c.number)) === wantStamped),
+    }))
+    .filter((g) => g.castles.length > 0)
+}

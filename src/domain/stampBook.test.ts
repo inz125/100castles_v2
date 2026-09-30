@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { castles, REGIONS } from './castles'
-import { getRecord, groupByRegion, progressOf, type StampBook } from './stampBook'
+import {
+  filterGroups,
+  getRecord,
+  groupByRegion,
+  progressOf,
+  type RegionGroup,
+  type StampBook,
+} from './stampBook'
 import { createEmptyRecord } from './stampRecord'
 
 describe('getRecord', () => {
@@ -63,5 +70,42 @@ describe('groupByRegion', () => {
     expect(progressByRegion['北海道・東北']).toEqual({ stamped: 2, total: 13 })
     expect(progressByRegion['近畿']).toEqual({ stamped: 1, total: 14 })
     expect(progressByRegion['九州・沖縄']).toEqual({ stamped: 0, total: 16 })
+  })
+})
+
+describe('filterGroups', () => {
+  // 北海道・東北は 13 城すべて押印済み、近畿は 59 番（姫路城）だけ押印済み
+  const book: StampBook = {
+    ...Object.fromEntries(
+      castles
+        .filter((c) => c.region === '北海道・東北')
+        .map((c) => [c.number, { stampedOn: '2026-01-01', memo: '' }]),
+    ),
+    59: { stampedOn: '2026-09-30', memo: '' },
+  }
+  const groups = groupByRegion(castles, book)
+  const numbersOf = (gs: RegionGroup[]) => gs.flatMap((g) => g.castles.map((c) => c.number))
+
+  it('すべて：そのまま返す', () => {
+    expect(filterGroups(groups, book, 'all')).toEqual(groups)
+  })
+
+  it('押印済み：押印済みの城だけ残し、城が残らない地方は除く', () => {
+    const filtered = filterGroups(groups, book, 'stamped')
+    expect(filtered.map((g) => g.region)).toEqual(['北海道・東北', '近畿'])
+    expect(numbersOf(filtered)).toEqual([...Array.from({ length: 13 }, (_, i) => i + 1), 59])
+  })
+
+  it('未押印：未押印の城だけ残し、城が残らない地方は除く', () => {
+    const filtered = filterGroups(groups, book, 'unstamped')
+    expect(filtered.map((g) => g.region)).not.toContain('北海道・東北')
+    expect(numbersOf(filtered)).toHaveLength(100 - 14)
+    expect(numbersOf(filtered)).not.toContain(59)
+  })
+
+  it('絞り込んでも地方の進捗は地方全体のまま', () => {
+    const kinki = filterGroups(groups, book, 'unstamped').find((g) => g.region === '近畿')
+    expect(kinki?.castles).toHaveLength(13)
+    expect(kinki?.progress).toEqual({ stamped: 1, total: 14 })
   })
 })
