@@ -41,6 +41,14 @@ export function setMemo(record: StampRecord, memo: string): StampRecord {
   return { ...record, memo }
 }
 
+/** 保存データなど外から来た値が記録の形になっているか */
+export function isStampRecord(value: unknown): value is StampRecord {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const { stampedOn, memo } = value as Record<string, unknown>
+  if (typeof memo !== 'string') return false
+  return stampedOn === null || (typeof stampedOn === 'string' && isIsoDate(stampedOn))
+}
+
 export function isIsoDate(value: string): value is IsoDate {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
   // 2026-02-30 のような存在しない日付は Date が繰り上げるので、往復して一致するかで判定する

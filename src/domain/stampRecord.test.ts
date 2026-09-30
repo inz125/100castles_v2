@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { createEmptyRecord, isStamped, setMemo, setStamped, setStampedDate } from './stampRecord'
+import {
+  createEmptyRecord,
+  isStamped,
+  isStampRecord,
+  setMemo,
+  setStamped,
+  setStampedDate,
+} from './stampRecord'
 
 describe('記録', () => {
   it('初期値は未押印・押印日なし・メモ空', () => {
@@ -103,5 +110,28 @@ describe('setMemo', () => {
     const original = createEmptyRecord()
     setMemo(original, 'x')
     expect(original).toEqual(createEmptyRecord())
+  })
+})
+
+describe('isStampRecord', () => {
+  it.each([
+    { stampedOn: null, memo: '' },
+    { stampedOn: '2026-09-30', memo: '白鷺城' },
+  ])('記録の形なら true（%o）', (value) => {
+    expect(isStampRecord(value)).toBe(true)
+  })
+
+  it.each([
+    null,
+    'string',
+    [],
+    {},
+    { stampedOn: null },
+    { stampedOn: null, memo: 1 },
+    { stampedOn: '2026/09/30', memo: '' },
+    { stampedOn: '2026-02-30', memo: '' },
+    { stampedOn: 20260930, memo: '' },
+  ])('記録の形でなければ false（%o）', (value) => {
+    expect(isStampRecord(value)).toBe(false)
   })
 })

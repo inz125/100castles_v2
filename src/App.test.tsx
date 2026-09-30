@@ -1,17 +1,22 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, type InitialEntry } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
+import { formatShareCode, type ShareCode } from './domain/shareCode'
 import type { LocationProvider } from './location/locationProvider'
 import { InMemoryStampBookRepository } from './repository/inMemoryStampBookRepository'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
+import type { CloudBookStore } from './sharing/cloudBookStore'
+import { InMemoryCloudBookStore } from './sharing/inMemoryCloudBookStore'
+import { loadShareSettings, saveShareSettings } from './sharing/shareSettings'
 import { LIST_FILTER, NEARBY_FILTER } from './ui/filterPreference'
 
 function failingRepository(error: unknown): StampBookRepository {
   return {
     load: () => Promise.reject(error),
     saveRecord: () => Promise.reject(error),
+    subscribe: () => () => {},
   }
 }
 
@@ -25,11 +30,13 @@ function renderApp(
   repository: StampBookRepository = new InMemoryStampBookRepository(),
   initialPath: InitialEntry = '/',
   locationProvider: LocationProvider = pendingLocation,
+  cloud: CloudBookStore = new InMemoryCloudBookStore(),
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
       <App
-        repository={repository}
+        localRepository={repository}
+        cloud={cloud}
         preferenceStorage={localStorage}
         locationProvider={locationProvider}
         now={() => NOW}
@@ -42,6 +49,97 @@ beforeEach(() => {
   localStorage.clear()
 })
 
+describe('App：共有中', () => {
+  const CODE = 'ABCD2345EFGH' as ShareCode
+
+  async function sharedCloud() {
+    const cloud = new InMemoryCloudBookStore()
+    await cloud.create(CODE, { 59: { stampedOn: '2026-09-01', memo: '' } })
+    saveShareSettings(localStorage, { code: CODE })
+    return cloud
+  }
+
+  it('共有中なら、端末内ではなくクラウドの記録帳を表示する', async () => {
+    const local = new InMemoryStampBookRepository()
+    await local.saveRecord(1, { stampedOn: '2026-01-01', memo: '' })
+    await local.saveRecord(2, { stampedOn: '2026-01-01', memo: '' })
+    renderApp(local, '/', pendingLocation, await sharedCloud())
+
+    expect(await screen.findByText('1/100')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /姫路城/ })).toContainElement(
+      screen.getByRole('img', { name: '押印済み' }),
+    )
+  })
+
+  it('共有中の変更はクラウドに保存し、端末内の記録は変えない', async () => {
+    const local = new InMemoryStampBookRepository()
+    const cloud = await sharedCloud()
+    renderApp(local, '/castles/100', pendingLocation, cloud)
+    await userEvent.click(await screen.findByRole('checkbox', { name: '押印済み' }))
+
+    await waitFor(async () =>
+      expect(await cloud.open(CODE).load()).toEqual({
+        59: { stampedOn: '2026-09-01', memo: '' },
+        100: { stampedOn: '2026-09-30', memo: '' },
+      }),
+    )
+    expect(await local.load()).toEqual({})
+  })
+
+  describe('同期の状態', () => {
+    const syncStatus = () => screen.getByRole('status', { name: '同期の状態' })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('一覧の見出しに同期の状態を表示し、送信待ち・オフラインに切り替わる', async () => {
+      const cloud = await sharedCloud()
+      renderApp(undefined, '/', pendingLocation, cloud)
+      await screen.findByText('1/100')
+      expect(syncStatus()).toHaveTextContent('同期済み')
+
+      act(() => cloud.setPendingWrites(CODE, true))
+      expect(syncStatus()).toHaveTextContent('送信待ち')
+
+      const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+      act(() => {
+        window.dispatchEvent(new Event('offline'))
+      })
+      expect(syncStatus()).toHaveTextContent('オフライン')
+
+      onLine.mockReturnValue(true)
+      act(() => {
+        window.dispatchEvent(new Event('online'))
+        cloud.setPendingWrites(CODE, false)
+      })
+      expect(syncStatus()).toHaveTextContent('同期済み')
+    })
+
+    it('共有画面にも同期の状態を表示する', async () => {
+      renderApp(undefined, '/share', pendingLocation, await sharedCloud())
+      expect(await screen.findByText('ABCD-2345-EFGH')).toBeInTheDocument()
+      expect(syncStatus()).toHaveTextContent('同期済み')
+    })
+
+    it('共有していなければ表示しない', async () => {
+      renderApp()
+      await screen.findByText('0/100')
+      expect(screen.queryByRole('status', { name: '同期の状態' })).toBeNull()
+    })
+  })
+
+  it('もう 1 人の変更が、開き直さなくても画面に反映される', async () => {
+    const cloud = await sharedCloud()
+    renderApp(undefined, '/', pendingLocation, cloud)
+    await screen.findByText('1/100')
+
+    await cloud.open(CODE).saveRecord(100, { stampedOn: '2026-09-30', memo: '' })
+
+    expect(await screen.findByText('2/100')).toBeInTheDocument()
+  })
+})
+
 describe('App', () => {
   it('アプリ名を見出しとして表示する', () => {
     renderApp()
@@ -49,7 +147,11 @@ describe('App', () => {
   })
 
   it('読み込みが終わるまでは読み込み中と表示する', () => {
-    renderApp({ load: () => new Promise(() => {}), saveRecord: async () => {} })
+    renderApp({
+      load: () => new Promise(() => {}),
+      saveRecord: async () => {},
+      subscribe: () => () => {},
+    })
     expect(screen.getByText('読み込み中…')).toBeInTheDocument()
     expect(screen.queryAllByRole('listitem')).toHaveLength(0)
   })
@@ -123,15 +225,89 @@ describe('App', () => {
     })
   })
 
+  describe('共有画面', () => {
+    it('一覧の見出しの「共有」から共有画面を開き、「一覧に戻る」で一覧に戻る', async () => {
+      renderApp()
+      await screen.findByText('0/100')
+      await userEvent.click(screen.getByRole('link', { name: '共有' }))
+      expect(screen.getByRole('heading', { level: 2, name: '共有' })).toBeInTheDocument()
+      expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+
+      await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
+      expect(screen.getAllByRole('listitem')).toHaveLength(100)
+    })
+
+    it.each(['/nearby', '/map', '/castles/59'])(
+      '一覧以外（%s）には「共有」を出さない',
+      async (path) => {
+        renderApp(undefined, path)
+        await screen.findByRole('heading', { level: 2 })
+        expect(screen.queryByRole('link', { name: '共有' })).toBeNull()
+      },
+    )
+
+    it('共有を始めると共有コードを表示し、それ以降の変更はクラウドの記録帳に入る', async () => {
+      const local = new InMemoryStampBookRepository()
+      await local.saveRecord(59, { stampedOn: '2026-09-01', memo: '' })
+      const cloud = new InMemoryCloudBookStore()
+      renderApp(local, '/share', pendingLocation, cloud)
+
+      await userEvent.click(await screen.findByRole('button', { name: '共有を始める' }))
+      const code = await waitFor(() => {
+        const settings = loadShareSettings(localStorage)
+        expect(settings).not.toBeNull()
+        return settings!.code
+      })
+      expect(await screen.findByText(formatShareCode(code))).toBeInTheDocument()
+
+      // もう 1 人の変更が届き、自分の変更はクラウドに入る
+      await cloud.open(code).saveRecord(100, { stampedOn: '2026-09-30', memo: '' })
+      await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
+      expect(await screen.findByText('2/100')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('link', { name: /首里城/ }))
+      await userEvent.click(screen.getByRole('checkbox', { name: '押印済み' }))
+      await waitFor(async () => expect((await cloud.open(code).load())[100]?.stampedOn).toBeNull())
+      expect(await local.load()).toEqual({ 59: { stampedOn: '2026-09-01', memo: '' } })
+    })
+
+    it('共有コードで参加すると一覧に移り、共有の記録帳を表示する', async () => {
+      const code = 'ABCD2345EFGH' as ShareCode
+      const cloud = new InMemoryCloudBookStore()
+      await cloud.create(code, {
+        59: { stampedOn: '2026-09-01', memo: '' },
+        100: { stampedOn: '2026-09-02', memo: '' },
+      })
+      renderApp(undefined, '/share', pendingLocation, cloud)
+
+      await userEvent.type(
+        await screen.findByRole('textbox', { name: '共有コード' }),
+        'abcd-2345-efgh',
+      )
+      await userEvent.click(screen.getByRole('button', { name: '参加する' }))
+
+      expect(await screen.findByText('2/100')).toBeInTheDocument()
+      expect(loadShareSettings(localStorage)).toEqual({ code })
+    })
+
+    it('URL（/share）で直接開ける', async () => {
+      renderApp(undefined, '/share')
+      expect(await screen.findByRole('heading', { level: 2, name: '共有' })).toBeInTheDocument()
+    })
+  })
+
   describe('地図タブ', () => {
     it('ピンの吹き出しの「詳細を見る」で詳細画面を開き、「地図に戻る」で地図に戻る', async () => {
       renderApp(undefined, '/map')
-      await screen.findByRole('region', { name: '城の地図' })
-      const pin = [...document.querySelectorAll<HTMLElement>('.map-pin')].find(
-        (p) => p.title === '姫路城',
-      )!
+      // ピンは地図を作ったあとの effect で立つので、現れるまで待つ
+      const pin = await waitFor(() => {
+        const found = [...document.querySelectorAll<HTMLElement>('.map-pin')].find(
+          (p) => p.title === '姫路城',
+        )
+        expect(found).toBeDefined()
+        return found!
+      })
       fireEvent.click(pin)
-      await userEvent.click(screen.getByRole('link', { name: '詳細を見る' }))
+      await userEvent.click(await screen.findByRole('link', { name: '詳細を見る' }))
       expect(screen.getByRole('heading', { level: 2, name: '姫路城' })).toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('link', { name: '地図に戻る' }))

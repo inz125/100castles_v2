@@ -1,5 +1,6 @@
 import type { StampBook } from '../domain/stampBook'
-import { isIsoDate, type StampRecord } from '../domain/stampRecord'
+import { isStampRecord, type StampRecord } from '../domain/stampRecord'
+import { BookListeners } from './bookListeners'
 import { UnsupportedVersionError, type StampBookRepository } from './stampBookRepository'
 
 export const STORAGE_KEY = 'castles100.stampBook'
@@ -20,6 +21,7 @@ type StoredData = {
 export class LocalStorageStampBookRepository implements StampBookRepository {
   private readonly storage: Storage
   private readonly now: () => number
+  private readonly listeners = new BookListeners()
 
   constructor(storage: Storage = localStorage, now: () => number = Date.now) {
     this.storage = storage
@@ -31,7 +33,13 @@ export class LocalStorageStampBookRepository implements StampBookRepository {
   }
 
   async saveRecord(castleNumber: number, record: StampRecord): Promise<void> {
-    this.write({ ...this.read(), [castleNumber]: { ...record } })
+    const records = { ...this.read(), [castleNumber]: { ...record } }
+    this.write(records)
+    this.listeners.notify(records)
+  }
+
+  subscribe(listener: (book: StampBook) => void): () => void {
+    return this.listeners.add(listener)
   }
 
   private read(): Records {
@@ -106,10 +114,4 @@ function parse(raw: string): { records: Records; hasInvalidRecords: boolean } | 
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isStampRecord(value: unknown): value is StampRecord {
-  if (!isObject(value) || typeof value.memo !== 'string') return false
-  const { stampedOn } = value
-  return stampedOn === null || (typeof stampedOn === 'string' && isIsoDate(stampedOn))
 }

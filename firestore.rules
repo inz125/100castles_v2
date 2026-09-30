@@ -1,0 +1,47 @@
+rules_version = '2';
+
+// 共有の記録帳（ログインなし。共有コードを知っている端末だけが読み書きできる）
+// - books/{共有コード}：記録帳の情報（version・作った日時）
+// - books/{共有コード}/records/{城番号}：城ごとの記録（stampedOn・memo）
+// 記録帳の一覧や、記録帳をまたいだ検索はできないので、コードを知らないと記録帳にたどり着けない
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 共有コード：読み間違えやすい 0 O 1 I L を除いた英大文字・数字 12 文字
+    function isShareCode(code) {
+      return code.matches('^[A-HJKMNP-Z2-9]{12}$');
+    }
+
+    function isCastleNumber(castle) {
+      return castle.matches('^([1-9][0-9]?|100)$');
+    }
+
+    function isStampRecord(data) {
+      return data.keys().hasOnly(['stampedOn', 'memo'])
+        && data.keys().hasAll(['stampedOn', 'memo'])
+        && data.memo is string
+        && data.memo.size() <= 10000
+        && (data.stampedOn == null
+          || (data.stampedOn is string && data.stampedOn.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')));
+    }
+
+    match /books/{code} {
+      // 参加するときにコードの記録帳があるかを確かめる。一覧は取れない
+      allow get: if isShareCode(code);
+      allow create: if isShareCode(code)
+        && request.resource.data.keys().hasOnly(['version', 'createdAt'])
+        && request.resource.data.version == 1
+        && request.resource.data.createdAt == request.time;
+
+      match /records/{castle} {
+        // 記録帳の中の記録はまとめて読める（コードを知っている前提）
+        allow read: if isShareCode(code);
+        // 記録帳を作るときは同じ書き込みの中で記録も入れるので、書き込み後の状態で確かめる
+        allow create, update: if isShareCode(code)
+          && isCastleNumber(castle)
+          && isStampRecord(request.resource.data)
+          && existsAfter(/databases/$(database)/documents/books/$(code));
+      }
+    }
+  }
+}

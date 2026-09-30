@@ -1,6 +1,6 @@
-/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
 
 /** 生成り（背景色）。起動画面やステータスバーの色に使う */
@@ -46,6 +46,8 @@ export default defineConfig({
   ],
   test: {
     environment: 'jsdom',
+    // Firestore エミュレータにつなぐテストは npm run test:emulator で別に実行する
+    exclude: [...configDefaults.exclude, 'src/**/*.emulator.test.ts'],
     setupFiles: ['./src/test/setup.ts'],
     // 日付の扱いを実際の利用環境（日本）と同じ条件でテストする
     env: { TZ: 'Asia/Tokyo' },
