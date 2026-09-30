@@ -14,13 +14,16 @@ function failingRepository(error: unknown): StampBookRepository {
   }
 }
 
+/** 日本時間の 2026-09-30 00:30（UTC ではまだ 9/29） */
+const NOW = new Date(2026, 8, 30, 0, 30)
+
 function renderApp(
   repository: StampBookRepository = new InMemoryStampBookRepository(),
   initialPath = '/',
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <App repository={repository} preferenceStorage={localStorage} />
+      <App repository={repository} preferenceStorage={localStorage} now={() => NOW} />
     </MemoryRouter>,
   )
 }
@@ -105,5 +108,55 @@ describe('App', () => {
         expect(screen.getByRole('link', { name: '一覧に戻る' })).toBeInTheDocument()
       },
     )
+  })
+
+  describe('詳細画面で押印済みを切り替える', () => {
+    const stampedCheckbox = () => screen.findByRole('checkbox', { name: '押印済み' })
+
+    it('ON にすると今日（日本時間）の日付が押印日に入り、すぐ保存される', async () => {
+      const repository = new InMemoryStampBookRepository()
+      renderApp(repository, '/castles/59')
+      await userEvent.click(await stampedCheckbox())
+
+      expect(await stampedCheckbox()).toBeChecked()
+      expect(screen.getByText('2026-09-30')).toBeInTheDocument()
+      expect(await repository.load()).toEqual({ 59: { stampedOn: '2026-09-30', memo: '' } })
+    })
+
+    it('OFF にすると押印日が消え、すぐ保存される', async () => {
+      const repository = new InMemoryStampBookRepository()
+      await repository.saveRecord(59, { stampedOn: '2026-01-01', memo: 'メモ' })
+      renderApp(repository, '/castles/59')
+      expect(await stampedCheckbox()).toBeChecked()
+      expect(screen.getByText('2026-01-01')).toBeInTheDocument()
+
+      await userEvent.click(await stampedCheckbox())
+
+      expect(await stampedCheckbox()).not.toBeChecked()
+      expect(screen.queryByText('2026-01-01')).toBeNull()
+      expect(await repository.load()).toEqual({ 59: { stampedOn: null, memo: 'メモ' } })
+    })
+
+    it('一覧に戻ると印と進捗に反映されている', async () => {
+      renderApp(undefined, '/castles/59')
+      await userEvent.click(await stampedCheckbox())
+      await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
+
+      expect(screen.getByText('1/100')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /姫路城/ })).toContainElement(
+        screen.getByRole('img', { name: '押印済み' }),
+      )
+    })
+
+    it('保存に失敗したら元の状態に戻し、保存できなかったことを表示する', async () => {
+      const repository = new InMemoryStampBookRepository()
+      repository.saveRecord = () => Promise.reject(new Error('quota exceeded'))
+      renderApp(repository, '/castles/59')
+      await userEvent.click(await stampedCheckbox())
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('保存できませんでした')
+      expect(await stampedCheckbox()).not.toBeChecked()
+      expect(screen.queryByText('2026-09-30')).toBeNull()
+    })
   })
 })

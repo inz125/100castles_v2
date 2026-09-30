@@ -8,5 +8,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // 日付の扱いを実際の利用環境（日本）と同じ条件でテストする
+    env: { TZ: 'Asia/Tokyo' },
   },
 })
