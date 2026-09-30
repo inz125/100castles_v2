@@ -5,7 +5,11 @@ import { REGIONS } from '../domain/castles'
 import type { StampBook, StampFilter } from '../domain/stampBook'
 import { CastleListPage } from './CastleListPage'
 
-function renderPage(book: StampBook, filter: StampFilter = 'all', onFilterChange = vi.fn()) {
+function renderPage(
+  book: StampBook,
+  filter: StampFilter = 'all',
+  onFilterChange = vi.fn<(filter: StampFilter) => void>(),
+) {
   render(<CastleListPage book={book} filter={filter} onFilterChange={onFilterChange} />)
   return { onFilterChange }
 }
