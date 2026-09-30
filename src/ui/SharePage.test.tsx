@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ShareCode } from '../domain/shareCode'
 import type { JoinResult } from '../sharing/joinSharing'
@@ -113,5 +113,101 @@ describe('SharePage：共有中', () => {
     vi.stubGlobal('navigator', { ...navigator, share: undefined })
     renderPage({ shareCode: CODE })
     expect(screen.queryByRole('button', { name: '送る' })).toBeNull()
+  })
+})
+
+describe('SharePage：共有に参加する', () => {
+  const codeInput = () => screen.getByRole('textbox', { name: '共有コード' })
+  const joinButton = () => screen.getByRole('button', { name: '参加する' })
+
+  function renderWithRoutes(onJoinSharing: (input: string) => Promise<JoinResult>) {
+    render(
+      <MemoryRouter initialEntries={['/share']}>
+        <Routes>
+          <Route
+            path="/share"
+            element={
+              <SharePage
+                shareCode={null}
+                onStartSharing={vi.fn<() => Promise<ShareCode>>()}
+                onJoinSharing={onJoinSharing}
+              />
+            }
+          />
+          <Route path="/" element={<p>一覧の画面</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('共有していなければ共有コードの入力欄を出す（自動の大文字化・修正の設定つき）', () => {
+    renderPage()
+    expect(codeInput()).toHaveAttribute('autocapitalize', 'characters')
+    expect(codeInput()).toHaveAttribute('autocorrect', 'off')
+    expect(codeInput()).toHaveAttribute('spellcheck', 'false')
+    expect(screen.getByText(/ホーム画面に追加したアプリ/)).toBeInTheDocument()
+  })
+
+  it('入力したコードで参加し、参加できたら一覧に移る', async () => {
+    const onJoinSharing = vi.fn<(input: string) => Promise<JoinResult>>(async () => ({
+      status: 'joined',
+      code: CODE,
+    }))
+    renderWithRoutes(onJoinSharing)
+    await userEvent.type(codeInput(), 'abcd-2345-efgh')
+    await userEvent.click(joinButton())
+
+    expect(onJoinSharing).toHaveBeenCalledWith('abcd-2345-efgh')
+    expect(await screen.findByText('一覧の画面')).toBeInTheDocument()
+  })
+
+  it('入力が空なら「参加する」を押せない', async () => {
+    renderPage()
+    expect(joinButton()).toBeDisabled()
+    await userEvent.type(codeInput(), 'A')
+    expect(joinButton()).toBeEnabled()
+  })
+
+  it('確かめている間は押せない', async () => {
+    renderPage({
+      onJoinSharing: vi.fn<(input: string) => Promise<JoinResult>>(() => new Promise(() => {})),
+    })
+    await userEvent.type(codeInput(), 'ABCD-2345-EFGH')
+    await userEvent.click(joinButton())
+    expect(screen.getByRole('button', { name: '確かめています…' })).toBeDisabled()
+  })
+
+  it.each([
+    [
+      { status: 'invalid' } as const,
+      '共有コードは 12 文字です（例：ABCD-2345-EFGH）。入力を確かめてください。',
+    ],
+    [{ status: 'not-found' } as const, '共有コードが見つかりません。入力を確かめてください。'],
+  ])('参加できなければ理由を表示する（%o）', async (result, message) => {
+    renderPage({
+      onJoinSharing: vi.fn<(input: string) => Promise<JoinResult>>(async () => result),
+    })
+    await userEvent.type(codeInput(), 'ABCD-2345-EFGX')
+    await userEvent.click(joinButton())
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
+    expect(joinButton()).toBeEnabled()
+  })
+
+  it('問い合わせられなければ、電波の届く場所で試すよう表示する', async () => {
+    renderPage({
+      onJoinSharing: vi.fn<(input: string) => Promise<JoinResult>>(() =>
+        Promise.reject(new Error('offline')),
+      ),
+    })
+    await userEvent.type(codeInput(), 'ABCD-2345-EFGH')
+    await userEvent.click(joinButton())
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '参加できませんでした。電波の届く場所でもう一度お試しください。',
+    )
+  })
+
+  it('共有中は入力欄を出さない', () => {
+    renderPage({ shareCode: CODE })
+    expect(screen.queryByRole('textbox', { name: '共有コード' })).toBeNull()
   })
 })

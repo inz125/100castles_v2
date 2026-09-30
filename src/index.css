@@ -380,6 +380,17 @@ textarea {
   user-select: all;
 }
 
+.share-page .share-card + .share-card {
+  margin-top: 16px;
+}
+
+.share-code-input {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
 .button {
   min-height: var(--tap);
   padding: 0 20px;

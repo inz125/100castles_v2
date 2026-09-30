@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useId, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router'
 import { formatShareCode, type ShareCode } from '../domain/shareCode'
 import type { JoinResult } from '../sharing/joinSharing'
 import { BackLink } from './castleLinks'
@@ -13,7 +14,7 @@ type Props = {
 }
 
 /** 共有画面：共有していなければ始める・参加する、共有中なら共有コードを伝える */
-export function SharePage({ shareCode, onStartSharing }: Props) {
+export function SharePage({ shareCode, onStartSharing, onJoinSharing }: Props) {
   return (
     <section className="page share-page">
       <BackLink />
@@ -21,9 +22,76 @@ export function SharePage({ shareCode, onStartSharing }: Props) {
       {shareCode ? (
         <SharingView code={shareCode} />
       ) : (
-        <StartSharingForm onStartSharing={onStartSharing} />
+        <>
+          <StartSharingForm onStartSharing={onStartSharing} />
+          <JoinSharingForm onJoinSharing={onJoinSharing} />
+        </>
       )}
     </section>
+  )
+}
+
+const JOIN_ERROR_MESSAGES = {
+  invalid: '共有コードは 12 文字です（例：ABCD-2345-EFGH）。入力を確かめてください。',
+  'not-found': '共有コードが見つかりません。入力を確かめてください。',
+  failed: '参加できませんでした。電波の届く場所でもう一度お試しください。',
+} as const
+
+function JoinSharingForm({ onJoinSharing }: Pick<Props, 'onJoinSharing'>) {
+  const navigate = useNavigate()
+  const inputId = useId()
+  const [input, setInput] = useState('')
+  const [joining, setJoining] = useState(false)
+  const [error, setError] = useState<keyof typeof JOIN_ERROR_MESSAGES | null>(null)
+
+  const join = async (event: FormEvent) => {
+    event.preventDefault()
+    setJoining(true)
+    setError(null)
+    try {
+      const result = await onJoinSharing(input)
+      if (result.status === 'joined') {
+        navigate('/')
+        return
+      }
+      setError(result.status)
+    } catch {
+      setError('failed')
+    }
+    setJoining(false)
+  }
+
+  return (
+    <form className="card share-card" onSubmit={join}>
+      <h3 className="share-card__title">共有に参加する</h3>
+      <p className="share-card__text">
+        もう 1
+        人から聞いた共有コードを入力してください。ホーム画面に追加したアプリで参加してください（Safari
+        で開いた画面とは記録の保存場所が別です）。
+      </p>
+      <label htmlFor={inputId} className="visually-hidden">
+        共有コード
+      </label>
+      <input
+        id={inputId}
+        className="input share-code-input"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder="ABCD-2345-EFGH"
+        autoCapitalize="characters"
+        autoCorrect="off"
+        autoComplete="off"
+        spellCheck={false}
+      />
+      {error && (
+        <p role="alert" className="alert">
+          {JOIN_ERROR_MESSAGES[error]}
+        </p>
+      )}
+      <button type="submit" className="button" disabled={joining || input.trim() === ''}>
+        {joining ? '確かめています…' : '参加する'}
+      </button>
+    </form>
   )
 }
 

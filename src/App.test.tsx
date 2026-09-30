@@ -227,6 +227,25 @@ describe('App', () => {
       expect(await local.load()).toEqual({ 59: { stampedOn: '2026-09-01', memo: '' } })
     })
 
+    it('共有コードで参加すると一覧に移り、共有の記録帳を表示する', async () => {
+      const code = 'ABCD2345EFGH' as ShareCode
+      const cloud = new InMemoryCloudBookStore()
+      await cloud.create(code, {
+        59: { stampedOn: '2026-09-01', memo: '' },
+        100: { stampedOn: '2026-09-02', memo: '' },
+      })
+      renderApp(undefined, '/share', pendingLocation, cloud)
+
+      await userEvent.type(
+        await screen.findByRole('textbox', { name: '共有コード' }),
+        'abcd-2345-efgh',
+      )
+      await userEvent.click(screen.getByRole('button', { name: '参加する' }))
+
+      expect(await screen.findByText('2/100')).toBeInTheDocument()
+      expect(loadShareSettings(localStorage)).toEqual({ code })
+    })
+
     it('URL（/share）で直接開ける', async () => {
       renderApp(undefined, '/share')
       expect(await screen.findByRole('heading', { level: 2, name: '共有' })).toBeInTheDocument()
