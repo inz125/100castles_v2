@@ -40,7 +40,7 @@ export function setMemo(record: StampRecord, memo: string): StampRecord {
   return { ...record, memo }
 }
 
-function isIsoDate(value: string): value is IsoDate {
+export function isIsoDate(value: string): value is IsoDate {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
   // 2026-02-30 のような存在しない日付は Date が繰り上げるので、往復して一致するかで判定する
   return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value)
