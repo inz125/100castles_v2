@@ -12,6 +12,7 @@ function failingRepository(error: unknown): StampBookRepository {
   return {
     load: () => Promise.reject(error),
     saveRecord: () => Promise.reject(error),
+    subscribe: () => () => {},
   }
 }
 
@@ -49,7 +50,11 @@ describe('App', () => {
   })
 
   it('読み込みが終わるまでは読み込み中と表示する', () => {
-    renderApp({ load: () => new Promise(() => {}), saveRecord: async () => {} })
+    renderApp({
+      load: () => new Promise(() => {}),
+      saveRecord: async () => {},
+      subscribe: () => () => {},
+    })
     expect(screen.getByText('読み込み中…')).toBeInTheDocument()
     expect(screen.queryAllByRole('listitem')).toHaveLength(0)
   })
