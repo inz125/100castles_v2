@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 生成りの背景に朱色の丸印「城」。印は中央の安全領域（直径 80%）に収める -->
+  <rect width="512" height="512" fill="#f4eee1"/>
+  <g transform="rotate(-12 256 256)" fill="none" stroke="#c63d2a">
+    <circle cx="256" cy="256" r="160" stroke-width="20"/>
+    <circle cx="256" cy="256" r="134" stroke-width="5"/>
+  </g>
+  <text x="256" y="262" transform="rotate(-12 256 256)" text-anchor="middle" dominant-baseline="central"
+    font-family="'Hiragino Mincho ProN', 'Yu Mincho', 'YuMincho', serif" font-weight="700"
+    font-size="176" fill="#c63d2a">城</text>
+</svg>

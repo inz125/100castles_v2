@@ -108,8 +108,11 @@ function MemoField({
       if (document.visibilityState === 'hidden') flush()
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
+    // 再読み込み（アプリの自動更新など）では画面の片付けが走らないので、ここでも保存する
+    window.addEventListener('pagehide', flush)
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('pagehide', flush)
       flush()
     }
   }, [flush])

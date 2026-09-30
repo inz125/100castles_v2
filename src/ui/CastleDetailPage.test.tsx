@@ -72,6 +72,15 @@ describe('CastleDetailPage のメモ', () => {
     expect(onChange).toHaveBeenCalledWith({ stampedOn: null, memo: 'abc' })
   })
 
+  it('ページが閉じられる・再読み込みされるとき（pagehide）にもすぐ保存する', () => {
+    const { onChange } = renderPage({ stampedOn: null, memo: '' })
+    typeMemo('abc')
+    act(() => {
+      window.dispatchEvent(new Event('pagehide'))
+    })
+    expect(onChange).toHaveBeenCalledWith({ stampedOn: null, memo: 'abc' })
+  })
+
   it('画面を離れるときに保存していない入力があれば保存する', () => {
     const { onChange, unmount } = renderPage({ stampedOn: null, memo: '' })
     typeMemo('abc')
