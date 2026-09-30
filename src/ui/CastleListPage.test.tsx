@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { REGIONS } from '../domain/castles'
+import type { StampBook } from '../domain/stampBook'
 import { CastleListPage } from './CastleListPage'
 
 describe('CastleListPage', () => {
@@ -25,5 +26,32 @@ describe('CastleListPage', () => {
     expect(items[0]).toHaveTextContent(/49.*小谷城.*滋賀県/)
     expect(items[10]).toHaveTextContent(/59.*姫路城.*兵庫県/)
     expect(items[13]).toHaveTextContent(/62.*和歌山城.*和歌山県/)
+  })
+
+  describe('進捗', () => {
+    const book: StampBook = {
+      2: { stampedOn: '2026-01-01', memo: '' },
+      8: { stampedOn: '2026-01-02', memo: '' },
+      59: { stampedOn: '2026-09-30', memo: '' },
+      100: { stampedOn: null, memo: 'メモだけ' },
+    }
+
+    it('全体の進捗を xx/100 で表示する', () => {
+      render(<CastleListPage book={book} />)
+      expect(screen.getByText('3/100')).toBeInTheDocument()
+    })
+
+    it('地方の見出しに地方ごとの進捗を表示する', () => {
+      render(<CastleListPage book={book} />)
+      const headings = screen.getAllByRole('heading', { level: 2 })
+      expect(headings.map((h) => h.textContent)).toEqual([
+        '北海道・東北2/13',
+        '関東・甲信越0/19',
+        '北陸・東海0/16',
+        '近畿1/14',
+        '中国・四国0/22',
+        '九州・沖縄0/16',
+      ])
+    })
   })
 })

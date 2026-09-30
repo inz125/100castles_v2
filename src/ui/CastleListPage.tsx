@@ -1,6 +1,12 @@
 import { useId } from 'react'
 import { castles } from '../domain/castles'
-import { groupByRegion, type RegionGroup, type StampBook } from '../domain/stampBook'
+import {
+  groupByRegion,
+  progressOf,
+  type Progress,
+  type RegionGroup,
+  type StampBook,
+} from '../domain/stampBook'
 
 type Props = {
   book: StampBook
@@ -11,6 +17,9 @@ export function CastleListPage({ book }: Props) {
 
   return (
     <div>
+      <p>
+        <span>押印済み</span> <ProgressText progress={progressOf(castles, book)} />
+      </p>
       {groups.map((group) => (
         <RegionSection key={group.region} group={group} />
       ))}
@@ -23,7 +32,10 @@ function RegionSection({ group }: { group: RegionGroup }) {
 
   return (
     <section aria-labelledby={headingId}>
-      <h2 id={headingId}>{group.region}</h2>
+      <h2 id={headingId}>
+        <span>{group.region}</span>
+        <ProgressText progress={group.progress} />
+      </h2>
       <ul>
         {group.castles.map((castle) => (
           <li key={castle.number}>
@@ -32,5 +44,13 @@ function RegionSection({ group }: { group: RegionGroup }) {
         ))}
       </ul>
     </section>
+  )
+}
+
+function ProgressText({ progress }: { progress: Progress }) {
+  return (
+    <span>
+      {progress.stamped}/{progress.total}
+    </span>
   )
 }
