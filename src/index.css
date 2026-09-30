@@ -168,8 +168,32 @@ textarea {
   font-weight: 600;
 }
 
-.list-toolbar > .page__title {
+.page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 10px;
+}
+
+.text-button {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--vermilion);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.text-button:disabled {
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+.text-button:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
 }
 
 /* .castle-list の margin: 0 より後で効かせるため詳細度を上げる */

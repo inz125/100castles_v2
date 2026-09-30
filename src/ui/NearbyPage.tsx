@@ -27,6 +27,8 @@ const DENIED_MESSAGE =
 /** 近くタブ：開いたときに現在地を取得し、城を近い順に並べる */
 export function NearbyPage({ locationProvider, book, filter, onFilterChange }: Props) {
   const [location, setLocation] = useState<LocationState>({ status: 'loading' })
+  // 「更新」を押すたびに増やし、現在地を取り直すきっかけにする
+  const [requestCount, setRequestCount] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -34,12 +36,27 @@ export function NearbyPage({ locationProvider, book, filter, onFilterChange }: P
     return () => {
       cancelled = true
     }
-  }, [locationProvider])
+  }, [locationProvider, requestCount])
+
+  const refresh = () => {
+    setLocation({ status: 'loading' })
+    setRequestCount((n) => n + 1)
+  }
 
   return (
     <section className="page">
       <div className="list-toolbar">
-        <h2 className="page__title">近くの城</h2>
+        <div className="page__header">
+          <h2 className="page__title">近くの城</h2>
+          <button
+            type="button"
+            className="text-button"
+            onClick={refresh}
+            disabled={location.status === 'loading'}
+          >
+            更新
+          </button>
+        </div>
         <FilterControl filter={filter} onFilterChange={onFilterChange} />
       </div>
       <LocationMessage location={location} />

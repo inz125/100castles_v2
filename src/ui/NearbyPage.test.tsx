@@ -86,6 +86,51 @@ describe('NearbyPage：現在地の取得', () => {
   })
 })
 
+describe('NearbyPage：更新', () => {
+  /** 呼ばれた順に結果を返せる偽の窓口 */
+  function queuedProvider() {
+    const responders: ((result: LocationResult) => void)[] = []
+    const provider: LocationProvider = {
+      getCurrentPosition: () => new Promise((resolve) => responders.push(resolve)),
+    }
+    return { provider, responders }
+  }
+  const updateButton = () => screen.getByRole('button', { name: '更新' })
+
+  it('「更新」で現在地を取り直し、新しい位置から近い順に並べ直す', async () => {
+    const { provider, responders } = queuedProvider()
+    renderPage({ provider })
+    responders[0]({ status: 'ok', position: HERE })
+    expect((await screen.findAllByRole('listitem'))[0]).toHaveTextContent('松本城')
+
+    await userEvent.click(updateButton())
+    expect(responders).toHaveLength(2)
+    expect(screen.getByRole('status')).toHaveTextContent('現在地を取得しています…')
+
+    // 姫路駅付近
+    responders[1]({ status: 'ok', position: { latitude: 34.8266, longitude: 134.6907 } })
+    expect((await screen.findAllByRole('listitem'))[0]).toHaveTextContent('姫路城')
+  })
+
+  it('取得に失敗したあとも「更新」で取り直せる', async () => {
+    const { provider, responders } = queuedProvider()
+    renderPage({ provider })
+    responders[0]({ status: 'denied' })
+    await screen.findByRole('alert')
+
+    await userEvent.click(updateButton())
+    responders[1]({ status: 'ok', position: HERE })
+    expect(await screen.findAllByRole('listitem')).toHaveLength(100)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('取得中は「更新」を押せない', () => {
+    const { provider } = queuedProvider()
+    renderPage({ provider })
+    expect(updateButton()).toBeDisabled()
+  })
+})
+
 describe('NearbyPage：近い順の一覧', () => {
   it('城を現在地から近い順に並べ、距離を表示する', async () => {
     renderPage()
