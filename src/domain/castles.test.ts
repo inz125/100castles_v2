@@ -28,24 +28,39 @@ describe('城マスタ', () => {
     expect(REGIONS.map(firstNumberOf)).toEqual([1, 14, 33, 49, 63, 85])
   })
 
+  it('緯度経度が日本の範囲内にある', () => {
+    for (const c of castles) {
+      expect(c.latitude, `No.${c.number}`).toBeGreaterThanOrEqual(24)
+      expect(c.latitude, `No.${c.number}`).toBeLessThanOrEqual(46)
+      expect(c.longitude, `No.${c.number}`).toBeGreaterThanOrEqual(122)
+      expect(c.longitude, `No.${c.number}`).toBeLessThanOrEqual(146)
+    }
+  })
+
   it('代表的な城のデータが正しい', () => {
     expect(castles[0]).toEqual({
       number: 1,
       name: '根室半島チャシ跡群',
       prefecture: '北海道',
       region: '北海道・東北',
+      latitude: 43.3503,
+      longitude: 145.6317,
     })
     expect(castles[58]).toEqual({
       number: 59,
       name: '姫路城',
       prefecture: '兵庫県',
       region: '近畿',
+      latitude: 34.8394,
+      longitude: 134.6939,
     })
     expect(castles[99]).toEqual({
       number: 100,
       name: '首里城',
       prefecture: '沖縄県',
       region: '九州・沖縄',
+      latitude: 26.2172,
+      longitude: 127.7194,
     })
   })
 })

@@ -18,6 +18,10 @@ export type Castle = {
   name: string
   prefecture: string
   region: Region
+  /** 城跡の中心付近（天守・本丸など）の緯度 */
+  latitude: number
+  /** 城跡の中心付近（天守・本丸など）の経度 */
+  longitude: number
 }
 
 /** 日本100名城（番号順） */
