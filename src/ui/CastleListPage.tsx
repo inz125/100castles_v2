@@ -2,26 +2,49 @@ import { useId } from 'react'
 import { castles } from '../domain/castles'
 import { isStamped } from '../domain/stampRecord'
 import {
+  filterGroups,
   getRecord,
   groupByRegion,
   progressOf,
   type Progress,
   type RegionGroup,
   type StampBook,
+  type StampFilter,
 } from '../domain/stampBook'
 
 type Props = {
   book: StampBook
+  filter: StampFilter
+  onFilterChange: (filter: StampFilter) => void
 }
 
-export function CastleListPage({ book }: Props) {
-  const groups = groupByRegion(castles, book)
+const FILTER_OPTIONS: readonly { value: StampFilter; label: string }[] = [
+  { value: 'all', label: 'すべて' },
+  { value: 'unstamped', label: '未押印' },
+  { value: 'stamped', label: '押印済み' },
+]
+
+export function CastleListPage({ book, filter, onFilterChange }: Props) {
+  const groups = filterGroups(groupByRegion(castles, book), book, filter)
 
   return (
     <div>
       <p>
         <span>押印済み</span> <ProgressText progress={progressOf(castles, book)} />
       </p>
+      <div role="group" aria-label="絞り込み">
+        {FILTER_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={option.value === filter}
+            onClick={() => onFilterChange(option.value)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+      {groups.length === 0 && <p>該当する城はありません</p>}
       {groups.map((group) => (
         <RegionSection key={group.region} group={group} book={book} />
       ))}
