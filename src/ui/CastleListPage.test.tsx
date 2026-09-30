@@ -54,4 +54,24 @@ describe('CastleListPage', () => {
       ])
     })
   })
+
+  describe('押印済みの印', () => {
+    const book: StampBook = {
+      59: { stampedOn: '2026-09-30', memo: '' },
+      100: { stampedOn: null, memo: 'メモだけ' },
+    }
+    const itemOf = (name: string) =>
+      screen.getAllByRole('listitem').find((li) => li.textContent?.includes(name))!
+
+    it('押印済みの城にだけ印を表示する', () => {
+      render(<CastleListPage book={book} />)
+      expect(screen.getAllByRole('img', { name: '押印済み' })).toHaveLength(1)
+      expect(within(itemOf('姫路城')).getByRole('img', { name: '押印済み' })).toBeInTheDocument()
+    })
+
+    it('メモだけの城には印を表示しない', () => {
+      render(<CastleListPage book={book} />)
+      expect(within(itemOf('首里城')).queryByRole('img', { name: '押印済み' })).toBeNull()
+    })
+  })
 })

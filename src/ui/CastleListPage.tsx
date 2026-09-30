@@ -1,6 +1,8 @@
 import { useId } from 'react'
 import { castles } from '../domain/castles'
+import { isStamped } from '../domain/stampRecord'
 import {
+  getRecord,
   groupByRegion,
   progressOf,
   type Progress,
@@ -21,13 +23,13 @@ export function CastleListPage({ book }: Props) {
         <span>押印済み</span> <ProgressText progress={progressOf(castles, book)} />
       </p>
       {groups.map((group) => (
-        <RegionSection key={group.region} group={group} />
+        <RegionSection key={group.region} group={group} book={book} />
       ))}
     </div>
   )
 }
 
-function RegionSection({ group }: { group: RegionGroup }) {
+function RegionSection({ group, book }: { group: RegionGroup; book: StampBook }) {
   const headingId = useId()
 
   return (
@@ -40,10 +42,19 @@ function RegionSection({ group }: { group: RegionGroup }) {
         {group.castles.map((castle) => (
           <li key={castle.number}>
             <span>{castle.number}</span> <span>{castle.name}</span> <span>{castle.prefecture}</span>
+            {isStamped(getRecord(book, castle.number)) && <StampMark />}
           </li>
         ))}
       </ul>
     </section>
+  )
+}
+
+function StampMark() {
+  return (
+    <span role="img" aria-label="押印済み">
+      印
+    </span>
   )
 }
 
