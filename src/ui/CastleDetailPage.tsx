@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { Link } from 'react-router'
 import type { Castle } from '../domain/castles'
 import {
   isStamped,
@@ -9,6 +8,7 @@ import {
   type IsoDate,
   type StampRecord,
 } from '../domain/stampRecord'
+import { BackLink } from './castleLinks'
 import { StampMark } from './StampMark'
 
 type Props = {
@@ -25,7 +25,7 @@ export function CastleDetailPage({ castle, record, today, onChange }: Props) {
 
   return (
     <article className="detail">
-      <BackToListLink />
+      <BackLink />
       <header className="detail__header">
         <div>
           <p className="detail__meta">
@@ -140,16 +140,8 @@ function MemoField({
 export function CastleNotFound() {
   return (
     <div className="detail">
-      <BackToListLink />
+      <BackLink />
       <p className="empty">城が見つかりません</p>
     </div>
-  )
-}
-
-function BackToListLink() {
-  return (
-    <Link to="/" className="back-link">
-      一覧に戻る
-    </Link>
   )
 }

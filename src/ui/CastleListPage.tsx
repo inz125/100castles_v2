@@ -1,5 +1,4 @@
 import { useId } from 'react'
-import { Link } from 'react-router'
 import { castles } from '../domain/castles'
 import { isStamped } from '../domain/stampRecord'
 import {
@@ -12,6 +11,7 @@ import {
   type StampBook,
   type StampFilter,
 } from '../domain/stampBook'
+import { CastleLink } from './castleLinks'
 import { StampMark } from './StampMark'
 
 type Props = {
@@ -79,14 +79,14 @@ function RegionSection({ group, book }: { group: RegionGroup; book: StampBook })
       <ul className="castle-list">
         {group.castles.map((castle) => (
           <li key={castle.number}>
-            <Link to={`/castles/${castle.number}`} className="castle-row">
+            <CastleLink castleNumber={castle.number} className="castle-row">
               <span className="castle-row__number">{castle.number}</span>
               <span className="castle-row__name">{castle.name}</span>
               <span className="castle-row__prefecture">{castle.prefecture}</span>
               <span className="castle-row__mark">
                 {isStamped(getRecord(book, castle.number)) && <StampMark />}
               </span>
-            </Link>
+            </CastleLink>
           </li>
         ))}
       </ul>

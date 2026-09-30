@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, type InitialEntry } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
 import { InMemoryStampBookRepository } from './repository/inMemoryStampBookRepository'
@@ -19,7 +19,7 @@ const NOW = new Date(2026, 8, 30, 0, 30)
 
 function renderApp(
   repository: StampBookRepository = new InMemoryStampBookRepository(),
-  initialPath = '/',
+  initialPath: InitialEntry = '/',
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
@@ -142,6 +142,25 @@ describe('App', () => {
       renderApp(undefined, '/castles/59')
       await userEvent.click(await screen.findByRole('link', { name: '一覧に戻る' }))
       expect(screen.getAllByRole('listitem')).toHaveLength(100)
+    })
+
+    it.each([
+      ['/nearby', '近くに戻る', '近くの城'],
+      ['/map', '地図に戻る', '地図'],
+    ])('%s から開いた詳細画面は「戻る」でその画面に戻る', async (from, linkName, heading) => {
+      renderApp(undefined, { pathname: '/castles/59', state: { from } })
+      await userEvent.click(await screen.findByRole('link', { name: linkName }))
+      expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
+    })
+
+    it('URL で直接開いた詳細画面は「戻る」で一覧に戻る', async () => {
+      renderApp(undefined, '/castles/59')
+      expect(await screen.findByRole('link', { name: '一覧に戻る' })).toHaveAttribute('href', '/')
+    })
+
+    it('知らない戻り先が渡されたら一覧に戻る', async () => {
+      renderApp(undefined, { pathname: '/castles/59', state: { from: '/castles/1' } })
+      expect(await screen.findByRole('link', { name: '一覧に戻る' })).toHaveAttribute('href', '/')
     })
 
     it('URL で直接詳細画面を開ける', async () => {
