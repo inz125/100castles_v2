@@ -15,7 +15,7 @@ createRoot(document.getElementById('root')!).render(
     {/* GitHub Pages ではサーバー側のルーティングができないため、# 付きの URL を使う */}
     <HashRouter>
       <App
-        repository={repository}
+        localRepository={repository}
         preferenceStorage={localStorage}
         locationProvider={locationProvider}
       />

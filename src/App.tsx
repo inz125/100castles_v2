@@ -6,6 +6,8 @@ import { getRecord, type StampBook, type StampFilter } from './domain/stampBook'
 import type { IsoDate, StampRecord } from './domain/stampRecord'
 import type { LocationProvider } from './location/locationProvider'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
+import type { CloudBookStore } from './sharing/cloudBookStore'
+import { loadShareSettings } from './sharing/shareSettings'
 import { CastleDetailPage, CastleNotFound } from './ui/CastleDetailPage'
 import { CastleListPage } from './ui/CastleListPage'
 import {
@@ -20,8 +22,11 @@ import { NearbyPage } from './ui/NearbyPage'
 import { TabBar } from './ui/TabBar'
 
 type Props = {
-  repository: StampBookRepository
-  /** 絞り込みの選択など、表示の好みを保存する先 */
+  /** 共有していないときに使う端末内の記録帳 */
+  localRepository: StampBookRepository
+  /** 共有中に使うクラウドの記録帳（Firebase をつなぐまでは未設定で、端末内の記録帳を使う） */
+  cloud?: CloudBookStore
+  /** 絞り込みの選択や共有の設定など、端末ごとの設定を保存する先 */
   preferenceStorage: Storage
   /** 現在地を取得する窓口 */
   locationProvider: LocationProvider
@@ -32,11 +37,22 @@ type Props = {
 type LoadState =
   { status: 'loading' } | { status: 'ready'; book: StampBook } | { status: 'error'; error: unknown }
 
-function App({ repository, preferenceStorage, locationProvider, now = () => new Date() }: Props) {
+function App({
+  localRepository,
+  cloud,
+  preferenceStorage,
+  locationProvider,
+  now = () => new Date(),
+}: Props) {
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [filter, changeFilter] = useSavedFilter(preferenceStorage, LIST_FILTER)
   const [nearbyFilter, changeNearbyFilter] = useSavedFilter(preferenceStorage, NEARBY_FILTER)
   const [saveFailed, setSaveFailed] = useState(false)
+  // 共有中ならクラウドの記録帳、そうでなければ端末内の記録帳を使う
+  const [repository] = useState(() => {
+    const settings = loadShareSettings(preferenceStorage)
+    return settings && cloud ? cloud.open(settings.code) : localRepository
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -48,6 +64,15 @@ function App({ repository, preferenceStorage, locationProvider, now = () => new 
       cancelled = true
     }
   }, [repository])
+
+  // もう 1 人の変更（と自分の保存）を画面に反映する。読み込めていないときは触らない
+  useEffect(
+    () =>
+      repository.subscribe((book) =>
+        setState((s) => (s.status === 'ready' ? { status: 'ready', book } : s)),
+      ),
+    [repository],
+  )
 
   const replaceRecord = (castleNumber: number, record: StampRecord) => {
     setState((s) =>

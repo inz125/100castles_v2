@@ -3,9 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, type InitialEntry } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import type { ShareCode } from './domain/shareCode'
 import type { LocationProvider } from './location/locationProvider'
 import { InMemoryStampBookRepository } from './repository/inMemoryStampBookRepository'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
+import type { CloudBookStore } from './sharing/cloudBookStore'
+import { InMemoryCloudBookStore } from './sharing/inMemoryCloudBookStore'
+import { saveShareSettings } from './sharing/shareSettings'
 import { LIST_FILTER, NEARBY_FILTER } from './ui/filterPreference'
 
 function failingRepository(error: unknown): StampBookRepository {
@@ -26,11 +30,13 @@ function renderApp(
   repository: StampBookRepository = new InMemoryStampBookRepository(),
   initialPath: InitialEntry = '/',
   locationProvider: LocationProvider = pendingLocation,
+  cloud: CloudBookStore = new InMemoryCloudBookStore(),
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
       <App
-        repository={repository}
+        localRepository={repository}
+        cloud={cloud}
         preferenceStorage={localStorage}
         locationProvider={locationProvider}
         now={() => NOW}
@@ -41,6 +47,54 @@ function renderApp(
 
 beforeEach(() => {
   localStorage.clear()
+})
+
+describe('App：共有中', () => {
+  const CODE = 'ABCD2345EFGH' as ShareCode
+
+  async function sharedCloud() {
+    const cloud = new InMemoryCloudBookStore()
+    await cloud.create(CODE, { 59: { stampedOn: '2026-09-01', memo: '' } })
+    saveShareSettings(localStorage, { code: CODE })
+    return cloud
+  }
+
+  it('共有中なら、端末内ではなくクラウドの記録帳を表示する', async () => {
+    const local = new InMemoryStampBookRepository()
+    await local.saveRecord(1, { stampedOn: '2026-01-01', memo: '' })
+    await local.saveRecord(2, { stampedOn: '2026-01-01', memo: '' })
+    renderApp(local, '/', pendingLocation, await sharedCloud())
+
+    expect(await screen.findByText('1/100')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /姫路城/ })).toContainElement(
+      screen.getByRole('img', { name: '押印済み' }),
+    )
+  })
+
+  it('共有中の変更はクラウドに保存し、端末内の記録は変えない', async () => {
+    const local = new InMemoryStampBookRepository()
+    const cloud = await sharedCloud()
+    renderApp(local, '/castles/100', pendingLocation, cloud)
+    await userEvent.click(await screen.findByRole('checkbox', { name: '押印済み' }))
+
+    await waitFor(async () =>
+      expect(await cloud.open(CODE).load()).toEqual({
+        59: { stampedOn: '2026-09-01', memo: '' },
+        100: { stampedOn: '2026-09-30', memo: '' },
+      }),
+    )
+    expect(await local.load()).toEqual({})
+  })
+
+  it('もう 1 人の変更が、開き直さなくても画面に反映される', async () => {
+    const cloud = await sharedCloud()
+    renderApp(undefined, '/', pendingLocation, cloud)
+    await screen.findByText('1/100')
+
+    await cloud.open(CODE).saveRecord(100, { stampedOn: '2026-09-30', memo: '' })
+
+    expect(await screen.findByText('2/100')).toBeInTheDocument()
+  })
 })
 
 describe('App', () => {
@@ -131,12 +185,16 @@ describe('App', () => {
   describe('地図タブ', () => {
     it('ピンの吹き出しの「詳細を見る」で詳細画面を開き、「地図に戻る」で地図に戻る', async () => {
       renderApp(undefined, '/map')
-      await screen.findByRole('region', { name: '城の地図' })
-      const pin = [...document.querySelectorAll<HTMLElement>('.map-pin')].find(
-        (p) => p.title === '姫路城',
-      )!
+      // ピンは地図を作ったあとの effect で立つので、現れるまで待つ
+      const pin = await waitFor(() => {
+        const found = [...document.querySelectorAll<HTMLElement>('.map-pin')].find(
+          (p) => p.title === '姫路城',
+        )
+        expect(found).toBeDefined()
+        return found!
+      })
       fireEvent.click(pin)
-      await userEvent.click(screen.getByRole('link', { name: '詳細を見る' }))
+      await userEvent.click(await screen.findByRole('link', { name: '詳細を見る' }))
       expect(screen.getByRole('heading', { level: 2, name: '姫路城' })).toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('link', { name: '地図に戻る' }))
