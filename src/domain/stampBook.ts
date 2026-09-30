@@ -40,6 +40,17 @@ export function groupByRegion(targets: readonly Castle[], book: StampBook): Regi
 
 export type StampFilter = 'all' | 'unstamped' | 'stamped'
 
+/** 城を押印の状態で絞り込む（並び順はそのまま） */
+export function filterCastles<T extends Castle>(
+  targets: readonly T[],
+  book: StampBook,
+  filter: StampFilter,
+): T[] {
+  if (filter === 'all') return [...targets]
+  const wantStamped = filter === 'stamped'
+  return targets.filter((c) => isStamped(getRecord(book, c.number)) === wantStamped)
+}
+
 /**
  * 地方ごとの城を絞り込む。城が残らない地方は除く。
  * 地方の進捗は絞り込み前（地方全体）のまま残す。
@@ -50,11 +61,7 @@ export function filterGroups(
   filter: StampFilter,
 ): RegionGroup[] {
   if (filter === 'all') return [...groups]
-  const wantStamped = filter === 'stamped'
   return groups
-    .map((g) => ({
-      ...g,
-      castles: g.castles.filter((c) => isStamped(getRecord(book, c.number)) === wantStamped),
-    }))
+    .map((g) => ({ ...g, castles: filterCastles(g.castles, book, filter) }))
     .filter((g) => g.castles.length > 0)
 }

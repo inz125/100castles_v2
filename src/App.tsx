@@ -4,15 +4,27 @@ import { castles } from './domain/castles'
 import { toLocalIsoDate } from './domain/dates'
 import { getRecord, type StampBook, type StampFilter } from './domain/stampBook'
 import type { IsoDate, StampRecord } from './domain/stampRecord'
+import type { LocationProvider } from './location/locationProvider'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
 import { CastleDetailPage, CastleNotFound } from './ui/CastleDetailPage'
 import { CastleListPage } from './ui/CastleListPage'
-import { loadStampFilter, saveStampFilter } from './ui/filterPreference'
+import {
+  LIST_FILTER,
+  loadStampFilter,
+  NEARBY_FILTER,
+  saveStampFilter,
+  type FilterPreference,
+} from './ui/filterPreference'
+import { MapPage } from './ui/MapPage'
+import { NearbyPage } from './ui/NearbyPage'
+import { TabBar } from './ui/TabBar'
 
 type Props = {
   repository: StampBookRepository
   /** 絞り込みの選択など、表示の好みを保存する先 */
   preferenceStorage: Storage
+  /** 現在地を取得する窓口 */
+  locationProvider: LocationProvider
   /** 現在時刻（テストで日付を固定するため差し替えられるようにしている） */
   now?: () => Date
 }
@@ -20,9 +32,10 @@ type Props = {
 type LoadState =
   { status: 'loading' } | { status: 'ready'; book: StampBook } | { status: 'error'; error: unknown }
 
-function App({ repository, preferenceStorage, now = () => new Date() }: Props) {
+function App({ repository, preferenceStorage, locationProvider, now = () => new Date() }: Props) {
   const [state, setState] = useState<LoadState>({ status: 'loading' })
-  const [filter, setFilter] = useState<StampFilter>(() => loadStampFilter(preferenceStorage))
+  const [filter, changeFilter] = useSavedFilter(preferenceStorage, LIST_FILTER)
+  const [nearbyFilter, changeNearbyFilter] = useSavedFilter(preferenceStorage, NEARBY_FILTER)
   const [saveFailed, setSaveFailed] = useState(false)
 
   useEffect(() => {
@@ -35,11 +48,6 @@ function App({ repository, preferenceStorage, now = () => new Date() }: Props) {
       cancelled = true
     }
   }, [repository])
-
-  const changeFilter = (next: StampFilter) => {
-    setFilter(next)
-    saveStampFilter(preferenceStorage, next)
-  }
 
   const replaceRecord = (castleNumber: number, record: StampRecord) => {
     setState((s) =>
@@ -82,6 +90,27 @@ function App({ repository, preferenceStorage, now = () => new Date() }: Props) {
             }
           />
           <Route
+            path="nearby"
+            element={
+              <NearbyPage
+                locationProvider={locationProvider}
+                book={state.book}
+                filter={nearbyFilter}
+                onFilterChange={changeNearbyFilter}
+              />
+            }
+          />
+          <Route
+            path="map"
+            element={
+              <MapPage
+                book={state.book}
+                locationProvider={locationProvider}
+                preferenceStorage={preferenceStorage}
+              />
+            }
+          />
+          <Route
             path="castles/:number"
             element={
               <CastleDetailRoute
@@ -94,8 +123,19 @@ function App({ repository, preferenceStorage, now = () => new Date() }: Props) {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
+      <TabBar />
     </main>
   )
+}
+
+/** 絞り込みの選択。変えるたびに保存し、次回も使う */
+function useSavedFilter(storage: Storage, preference: FilterPreference) {
+  const [filter, setFilter] = useState<StampFilter>(() => loadStampFilter(storage, preference))
+  const changeFilter = (next: StampFilter) => {
+    setFilter(next)
+    saveStampFilter(storage, preference, next)
+  }
+  return [filter, changeFilter] as const
 }
 
 type CastleDetailRouteProps = {

@@ -20,6 +20,7 @@
   --gutter: 16px;
   --max-width: 640px;
   --tap: 44px;
+  --tab-bar-height: 56px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -79,9 +80,10 @@ textarea {
 .app {
   max-width: var(--max-width);
   margin: 0 auto;
-  /* iPhone のノッチ・ホームインジケータを避ける */
+  /* iPhone のノッチ・ホームインジケータと、下部のタブバーを避ける */
   padding: env(safe-area-inset-top) calc(var(--gutter) + env(safe-area-inset-right))
-    calc(32px + env(safe-area-inset-bottom)) calc(var(--gutter) + env(safe-area-inset-left));
+    calc(32px + var(--tab-bar-height) + env(safe-area-inset-bottom))
+    calc(var(--gutter) + env(safe-area-inset-left));
 }
 
 .app-header {
@@ -108,6 +110,256 @@ textarea {
   background: var(--vermilion-soft);
   color: var(--vermilion);
   font-weight: 600;
+}
+
+/* ===== タブバー ===== */
+.tab-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.tab-bar__tab {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: var(--tab-bar-height);
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tab-bar__tab[aria-current='page'] {
+  color: var(--vermilion);
+}
+
+/* 選択中のタブの上端に朱の線を引く */
+.tab-bar__tab[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(50% - 16px);
+  width: 32px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--vermilion);
+}
+
+.tab-bar__tab:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: -4px;
+}
+
+/* 画面には出さず、読み上げには使う */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ===== 地図タブ（画面上端からタブバーまで地図を敷き詰める） ===== */
+.map-page {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  right: 0;
+  bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 1;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  font-family: var(--font-gothic);
+}
+
+/* 城のピン：押印済みは朱、未押印は墨。タップ領域の中央に点を描く
+   （leaflet.css は後から読み込まれるので、.leaflet-marker-icon の display に勝つよう詳細度を上げる） */
+.leaflet-marker-icon.map-pin {
+  display: grid;
+  place-items: center;
+}
+
+.map-pin::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+
+/* 地図の上では背景に関わらず見分けやすいよう、ダークモードでも同じ色にする */
+.map-pin--stamped::after {
+  background: #c63d2a;
+}
+
+.map-pin--unstamped::after {
+  background: #2a2723;
+}
+
+/* 現在地の点（青） */
+.map-here::after {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 3px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #1a73e8;
+  box-shadow: 0 0 0 5px rgb(26 115 232 / 0.25);
+}
+
+/* 「現在地へ移動」ボタン（地図の右下、出典表記の上） */
+.map-here-button {
+  position: absolute;
+  right: 12px;
+  bottom: 36px;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: #1a73e8;
+  font-size: 18px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+}
+
+.map-here-button > span {
+  /* 矢印を北東向きにする */
+  transform: rotate(-45deg);
+}
+
+.map-here-button:disabled {
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+.map-here-button:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+/* 地図の上に出す案内 */
+.map-alert {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  left: 64px;
+  z-index: 1000;
+  margin: 0;
+  /* 地図が透けて読みにくくならないよう不透明にする */
+  background: var(--surface);
+  font-size: 14px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.2);
+}
+
+/* ピンの吹き出し（Leaflet の吹き出しの色をアプリに合わせる） */
+.map .leaflet-popup-content-wrapper,
+.map .leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.map .leaflet-popup-content {
+  margin: 12px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.map .leaflet-popup-content p {
+  margin: 0;
+}
+
+.map-popup__number {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.map-popup__name {
+  font-family: var(--font-mincho);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.map-popup__status {
+  color: var(--ink-muted);
+}
+
+.map .map-popup__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--vermilion);
+  font-weight: 600;
+}
+
+.map .map-popup__link::after {
+  content: '›';
+  margin-left: 4px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* ===== タブの画面（近く） ===== */
+.page {
+  padding-top: 8px;
+}
+
+.page__title {
+  font-family: var(--font-mincho);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.text-button {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--vermilion);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.text-button:disabled {
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+.text-button:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+/* .castle-list の margin: 0 より後で効かせるため詳細度を上げる */
+.castle-list.nearby-list {
+  margin-top: 16px;
 }
 
 /* ===== 一覧：上部（進捗と絞り込み） ===== */
@@ -241,6 +493,13 @@ textarea {
 .castle-row__prefecture {
   color: var(--ink-muted);
   font-size: 13px;
+  white-space: nowrap;
+}
+
+.castle-row__distance {
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 

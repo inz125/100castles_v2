@@ -1,11 +1,12 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, type InitialEntry } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import type { LocationProvider } from './location/locationProvider'
 import { InMemoryStampBookRepository } from './repository/inMemoryStampBookRepository'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
-import { FILTER_STORAGE_KEY } from './ui/filterPreference'
+import { LIST_FILTER, NEARBY_FILTER } from './ui/filterPreference'
 
 function failingRepository(error: unknown): StampBookRepository {
   return {
@@ -14,16 +15,25 @@ function failingRepository(error: unknown): StampBookRepository {
   }
 }
 
+/** 現在地の取得が終わらない窓口（近くタブの中身は NearbyPage のテストで確かめる） */
+const pendingLocation: LocationProvider = { getCurrentPosition: () => new Promise(() => {}) }
+
 /** 日本時間の 2026-09-30 00:30（UTC ではまだ 9/29） */
 const NOW = new Date(2026, 8, 30, 0, 30)
 
 function renderApp(
   repository: StampBookRepository = new InMemoryStampBookRepository(),
-  initialPath = '/',
+  initialPath: InitialEntry = '/',
+  locationProvider: LocationProvider = pendingLocation,
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <App repository={repository} preferenceStorage={localStorage} now={() => NOW} />
+      <App
+        repository={repository}
+        preferenceStorage={localStorage}
+        locationProvider={locationProvider}
+        now={() => NOW}
+      />
     </MemoryRouter>,
   )
 }
@@ -67,7 +77,7 @@ describe('App', () => {
 
   describe('絞り込み', () => {
     it('前回選んだ絞り込みで表示する', async () => {
-      localStorage.setItem(FILTER_STORAGE_KEY, 'stamped')
+      localStorage.setItem(LIST_FILTER.key, 'stamped')
       renderApp()
       expect(await screen.findByText('該当する城はありません')).toBeInTheDocument()
     })
@@ -76,7 +86,105 @@ describe('App', () => {
       renderApp()
       await userEvent.click(await screen.findByRole('button', { name: '押印済み' }))
       expect(screen.getByText('該当する城はありません')).toBeInTheDocument()
-      expect(localStorage.getItem(FILTER_STORAGE_KEY)).toBe('stamped')
+      expect(localStorage.getItem(LIST_FILTER.key)).toBe('stamped')
+    })
+  })
+
+  describe('近くタブ', () => {
+    // 松本駅付近
+    const nearMatsumoto: LocationProvider = {
+      getCurrentPosition: async () => ({
+        status: 'ok',
+        position: { latitude: 36.2308, longitude: 137.9642 },
+      }),
+    }
+
+    it('絞り込みは一覧とは別に覚え、初期値は未押印', async () => {
+      localStorage.setItem(LIST_FILTER.key, 'stamped')
+      renderApp(undefined, '/nearby', nearMatsumoto)
+      expect(await screen.findByRole('button', { name: '未押印' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+
+      await userEvent.click(screen.getByRole('button', { name: 'すべて' }))
+      expect(localStorage.getItem(NEARBY_FILTER.key)).toBe('all')
+      expect(localStorage.getItem(LIST_FILTER.key)).toBe('stamped')
+    })
+
+    it('近くの一覧から開いた詳細画面は「近くに戻る」で近くの一覧に戻る', async () => {
+      renderApp(undefined, '/nearby', nearMatsumoto)
+      await userEvent.click(await screen.findByRole('link', { name: /松本城/ }))
+      expect(screen.getByRole('heading', { level: 2, name: '松本城' })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('link', { name: '近くに戻る' }))
+      expect(await screen.findByRole('link', { name: /松本城/ })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 2, name: '近くの城' })).toBeInTheDocument()
+    })
+  })
+
+  describe('地図タブ', () => {
+    it('ピンの吹き出しの「詳細を見る」で詳細画面を開き、「地図に戻る」で地図に戻る', async () => {
+      renderApp(undefined, '/map')
+      await screen.findByRole('region', { name: '城の地図' })
+      const pin = [...document.querySelectorAll<HTMLElement>('.map-pin')].find(
+        (p) => p.title === '姫路城',
+      )!
+      fireEvent.click(pin)
+      await userEvent.click(screen.getByRole('link', { name: '詳細を見る' }))
+      expect(screen.getByRole('heading', { level: 2, name: '姫路城' })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('link', { name: '地図に戻る' }))
+      expect(await screen.findByRole('region', { name: '城の地図' })).toBeInTheDocument()
+    })
+  })
+
+  describe('タブバー', () => {
+    const tabBar = () => screen.getByRole('navigation', { name: 'タブ' })
+    const tab = (name: string) => within(tabBar()).getByRole('link', { name })
+
+    it('一覧・近く・地図のタブがあり、開いているタブが選択状態になる', async () => {
+      renderApp()
+      await screen.findByText('0/100')
+      expect(
+        within(tabBar())
+          .getAllByRole('link')
+          .map((l) => l.textContent),
+      ).toEqual(['一覧', '近く', '地図'])
+      expect(tab('一覧')).toHaveAttribute('aria-current', 'page')
+      expect(tab('近く')).not.toHaveAttribute('aria-current')
+    })
+
+    it.each([
+      ['近く', '近くの城'],
+      ['地図', '地図'],
+    ])('「%s」タブで %s の画面に切り替わる', async (tabName, heading) => {
+      renderApp()
+      await screen.findByText('0/100')
+      await userEvent.click(tab(tabName))
+      expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
+      expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+      expect(tab(tabName)).toHaveAttribute('aria-current', 'page')
+    })
+
+    it('「一覧」タブで一覧に戻る', async () => {
+      renderApp(undefined, '/map')
+      await userEvent.click(await screen.findByRole('link', { name: '一覧' }))
+      expect(screen.getAllByRole('listitem')).toHaveLength(100)
+    })
+
+    it.each([
+      ['/nearby', '近くの城'],
+      ['/map', '地図'],
+    ])('URL（%s）で直接開ける', async (path, heading) => {
+      renderApp(undefined, path)
+      expect(await screen.findByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
+    })
+
+    it('詳細画面でもタブバーを表示する', async () => {
+      renderApp(undefined, '/castles/59')
+      await screen.findByRole('heading', { level: 2, name: '姫路城' })
+      expect(tabBar()).toBeInTheDocument()
     })
   })
 
@@ -93,6 +201,25 @@ describe('App', () => {
       renderApp(undefined, '/castles/59')
       await userEvent.click(await screen.findByRole('link', { name: '一覧に戻る' }))
       expect(screen.getAllByRole('listitem')).toHaveLength(100)
+    })
+
+    it.each([
+      ['/nearby', '近くに戻る', '近くの城'],
+      ['/map', '地図に戻る', '地図'],
+    ])('%s から開いた詳細画面は「戻る」でその画面に戻る', async (from, linkName, heading) => {
+      renderApp(undefined, { pathname: '/castles/59', state: { from } })
+      await userEvent.click(await screen.findByRole('link', { name: linkName }))
+      expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
+    })
+
+    it('URL で直接開いた詳細画面は「戻る」で一覧に戻る', async () => {
+      renderApp(undefined, '/castles/59')
+      expect(await screen.findByRole('link', { name: '一覧に戻る' })).toHaveAttribute('href', '/')
+    })
+
+    it('知らない戻り先が渡されたら一覧に戻る', async () => {
+      renderApp(undefined, { pathname: '/castles/59', state: { from: '/castles/1' } })
+      expect(await screen.findByRole('link', { name: '一覧に戻る' })).toHaveAttribute('href', '/')
     })
 
     it('URL で直接詳細画面を開ける', async () => {

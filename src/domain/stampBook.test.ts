@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { castles, REGIONS } from './castles'
 import {
+  filterCastles,
   filterGroups,
   getRecord,
   groupByRegion,
@@ -70,6 +71,28 @@ describe('groupByRegion', () => {
     expect(progressByRegion['北海道・東北']).toEqual({ stamped: 2, total: 13 })
     expect(progressByRegion['近畿']).toEqual({ stamped: 1, total: 14 })
     expect(progressByRegion['九州・沖縄']).toEqual({ stamped: 0, total: 16 })
+  })
+})
+
+describe('filterCastles', () => {
+  const book: StampBook = {
+    2: { stampedOn: '2026-01-01', memo: '' },
+    59: { stampedOn: '2026-09-30', memo: '' },
+    3: { stampedOn: null, memo: '未押印のメモ' },
+  }
+  const targets = castles.slice(0, 5).concat(castles[58])
+  const numbersOf = (cs: readonly { number: number }[]) => cs.map((c) => c.number)
+
+  it('すべて：そのまま返す', () => {
+    expect(filterCastles(targets, book, 'all')).toEqual(targets)
+  })
+
+  it('押印済み：押印済みの城だけを並び順のまま返す', () => {
+    expect(numbersOf(filterCastles(targets, book, 'stamped'))).toEqual([2, 59])
+  })
+
+  it('未押印：記録がない城・押印日のない記録の城を返す', () => {
+    expect(numbersOf(filterCastles(targets, book, 'unstamped'))).toEqual([1, 3, 4, 5])
   })
 })
 
