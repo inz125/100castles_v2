@@ -1,14 +1,19 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { castles } from '../domain/castles'
 import type { StampBook } from '../domain/stampBook'
+import type { LocationProvider, LocationResult } from '../location/locationProvider'
 import { MapPage } from './MapPage'
 
-function renderPage(book: StampBook = {}) {
+/** 現在地の取得が終わらない窓口 */
+const pendingLocation: LocationProvider = { getCurrentPosition: () => new Promise(() => {}) }
+
+function renderPage(book: StampBook = {}, locationProvider = pendingLocation) {
   return render(
     <MemoryRouter initialEntries={['/map']}>
-      <MapPage book={book} />
+      <MapPage book={book} locationProvider={locationProvider} />
     </MemoryRouter>,
   )
 }
@@ -75,7 +80,10 @@ describe('MapPage：城のピン', () => {
     const { rerender } = renderPage()
     rerender(
       <MemoryRouter initialEntries={['/map']}>
-        <MapPage book={{ 59: { stampedOn: '2026-09-30', memo: '' } }} />
+        <MapPage
+          book={{ 59: { stampedOn: '2026-09-30', memo: '' } }}
+          locationProvider={pendingLocation}
+        />
       </MemoryRouter>,
     )
     expect(pins()).toHaveLength(100)
@@ -115,5 +123,74 @@ describe('MapPage：ピンの吹き出し', () => {
     tapPin('首里城')
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
     expect(within(popup()).getByText('首里城')).toBeInTheDocument()
+  })
+})
+
+describe('MapPage：現在地', () => {
+  // 姫路駅付近
+  const HERE = { latitude: 34.8266, longitude: 134.6907 }
+  const hereMarker = () => document.querySelector('.leaflet-marker-icon.map-here')
+  const moveButton = () => screen.getByRole('button', { name: '現在地へ移動' })
+
+  /** 呼ばれた順に結果を返せる偽の窓口 */
+  function queuedProvider() {
+    const responders: ((result: LocationResult) => void)[] = []
+    const provider: LocationProvider = {
+      getCurrentPosition: () => new Promise((resolve) => responders.push(resolve)),
+    }
+    return { provider, responders }
+  }
+
+  it('開いたときに現在地を取得し、取得できたら現在地の点を表示する', async () => {
+    const { provider, responders } = queuedProvider()
+    renderPage({}, provider)
+    expect(responders).toHaveLength(1)
+    expect(hereMarker()).toBeNull()
+
+    responders[0]({ status: 'ok', position: HERE })
+    await waitFor(() => expect(hereMarker()).not.toBeNull())
+  })
+
+  it('開いたときの取得に失敗しても何も表示しない', async () => {
+    const { provider, responders } = queuedProvider()
+    renderPage({}, provider)
+    responders[0]({ status: 'denied' })
+    await waitFor(() => expect(moveButton()).toBeEnabled())
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(hereMarker()).toBeNull()
+  })
+
+  it('「現在地へ移動」で現在地を取り直す（取得中は押せない）', async () => {
+    const { provider, responders } = queuedProvider()
+    renderPage({}, provider)
+    expect(moveButton()).toBeDisabled()
+    responders[0]({ status: 'failed' })
+    await waitFor(() => expect(moveButton()).toBeEnabled())
+
+    await userEvent.click(moveButton())
+    expect(responders).toHaveLength(2)
+    expect(moveButton()).toBeDisabled()
+    responders[1]({ status: 'ok', position: HERE })
+    await waitFor(() => expect(hereMarker()).not.toBeNull())
+    expect(moveButton()).toBeEnabled()
+  })
+
+  it.each([
+    ['denied', '位置情報の利用が許可されていません'],
+    ['failed', '現在地を取得できませんでした'],
+  ] as const)('「現在地へ移動」で取得できなければ理由を表示する（%s）', async (status, message) => {
+    const { provider, responders } = queuedProvider()
+    renderPage({}, provider)
+    responders[0]({ status: 'ok', position: HERE })
+    await waitFor(() => expect(moveButton()).toBeEnabled())
+
+    await userEvent.click(moveButton())
+    responders[1]({ status })
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
+
+    // 取り直して取得できたら消える
+    await userEvent.click(moveButton())
+    responders[2]({ status: 'ok', position: HERE })
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
   })
 })

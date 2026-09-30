@@ -8,6 +8,7 @@ import { isStamped } from '../domain/stampRecord'
 import type { LocationProvider, LocationResult } from '../location/locationProvider'
 import { CastleLink } from './castleLinks'
 import { FilterControl } from './FilterControl'
+import { locationErrorMessage } from './locationMessages'
 import { StampMark } from './StampMark'
 
 type Props = {
@@ -18,11 +19,6 @@ type Props = {
 }
 
 type LocationState = { status: 'loading' } | LocationResult
-
-const DENIED_MESSAGE =
-  '位置情報の利用が許可されていません。' +
-  'iPhone の『設定』→『プライバシーとセキュリティ』→『位置情報サービス』→『Safari Webサイト』を' +
-  '『使用中のみ』にしてから、『更新』を押してください。'
 
 /** 近くタブ：開いたときに現在地を取得し、城を近い順に並べる */
 export function NearbyPage({ locationProvider, book, filter, onFilterChange }: Props) {
@@ -76,15 +72,10 @@ function LocationMessage({ location }: { location: LocationState }) {
         </p>
       )
     case 'denied':
-      return (
-        <p role="alert" className="alert">
-          {DENIED_MESSAGE}
-        </p>
-      )
     case 'failed':
       return (
         <p role="alert" className="alert">
-          現在地を取得できませんでした。電波の届く場所で『更新』を押してください。
+          {locationErrorMessage(location.status, '更新')}
         </p>
       )
     case 'ok':

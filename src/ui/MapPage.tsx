@@ -3,9 +3,12 @@ import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { castles, type Castle } from '../domain/castles'
+import type { LatLng } from '../domain/distance'
 import { getRecord, type StampBook } from '../domain/stampBook'
 import { isStamped, type StampRecord } from '../domain/stampRecord'
+import type { LocationProvider } from '../location/locationProvider'
 import { CastleLink } from './castleLinks'
+import { locationErrorMessage } from './locationMessages'
 
 /** 国土地理院の標準地図タイル */
 const GSI_TILE_URL = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'
@@ -27,18 +30,62 @@ const pinIcon = (stamped: boolean) =>
     iconSize: [PIN_SIZE, PIN_SIZE],
   })
 
+/** 現在地の点（青）。タップしても何も起きない */
+const hereIcon = L.divIcon({ className: 'map-here', iconSize: [22, 22] })
+/** 「現在地へ移動」で最低限ここまで拡大する（市町村が見える程度） */
+const HERE_ZOOM = 12
+const MOVE_LABEL = '現在地へ移動'
+
 type Props = {
   book: StampBook
+  locationProvider: LocationProvider
 }
 
 /** 地図タブ：100 城すべてをピンで表示する（絞り込みなし） */
-export function MapPage({ book }: Props) {
+export function MapPage({ book, locationProvider }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   // 吹き出しを開いている城の番号
   const [selected, setSelected] = useState<number | null>(null)
   // 吹き出しの中身は React で描き、Leaflet の吹き出しにはこの要素を渡す
   const [popupContent] = useState(() => document.createElement('div'))
+  const [here, setHere] = useState<LatLng | null>(null)
+  const [locating, setLocating] = useState(true)
+  // 「現在地へ移動」で取得できなかった理由（開いたときの取得の失敗は表示しない）
+  const [moveError, setMoveError] = useState<'denied' | 'failed' | null>(null)
+  // 画面を離れたあとに届いた結果を使わないため
+  const mountedRef = useRef(false)
+
+  // 開いたときに現在地を取りに行き、取得できたら点を表示する
+  useEffect(() => {
+    mountedRef.current = true
+    locationProvider.getCurrentPosition().then((result) => {
+      if (!mountedRef.current) return
+      if (result.status === 'ok') setHere(result.position)
+      setLocating(false)
+    })
+    return () => {
+      mountedRef.current = false
+    }
+  }, [locationProvider])
+
+  const moveToHere = async () => {
+    setLocating(true)
+    const result = await locationProvider.getCurrentPosition()
+    if (!mountedRef.current) return
+    setLocating(false)
+    if (result.status !== 'ok') {
+      setMoveError(result.status)
+      return
+    }
+    setMoveError(null)
+    setHere(result.position)
+    const map = mapRef.current!
+    map.setView(
+      [result.position.latitude, result.position.longitude],
+      Math.max(map.getZoom(), HERE_ZOOM),
+    )
+  }
 
   useEffect(() => {
     const map = L.map(containerRef.current!, { center: JAPAN_CENTER, zoom: JAPAN_ZOOM })
@@ -83,12 +130,40 @@ export function MapPage({ book }: Props) {
     }
   }, [selected, popupContent])
 
+  useEffect(() => {
+    if (!here) return
+    const marker = L.marker([here.latitude, here.longitude], {
+      icon: hereIcon,
+      interactive: false,
+      keyboard: false,
+      // 城のピンより手前に出す
+      zIndexOffset: 1000,
+    }).addTo(mapRef.current!)
+    return () => {
+      marker.remove()
+    }
+  }, [here])
+
   const selectedCastle = castles.find((c) => c.number === selected)
 
   return (
     <section className="map-page">
       <h2 className="visually-hidden">地図</h2>
       <div ref={containerRef} className="map" role="region" aria-label="城の地図" />
+      {moveError && (
+        <p role="alert" className="alert map-alert">
+          {locationErrorMessage(moveError, MOVE_LABEL)}
+        </p>
+      )}
+      <button
+        type="button"
+        className="map-here-button"
+        onClick={moveToHere}
+        disabled={locating}
+        aria-label={MOVE_LABEL}
+      >
+        <span aria-hidden="true">➤</span>
+      </button>
       {selectedCastle &&
         createPortal(
           <CastlePopup castle={selectedCastle} record={getRecord(book, selectedCastle.number)} />,

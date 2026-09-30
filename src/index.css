@@ -210,6 +210,67 @@ textarea {
   background: #2a2723;
 }
 
+/* 現在地の点（青） */
+.map-here::after {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 3px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #1a73e8;
+  box-shadow: 0 0 0 5px rgb(26 115 232 / 0.25);
+}
+
+/* 「現在地へ移動」ボタン（地図の右下、出典表記の上） */
+.map-here-button {
+  position: absolute;
+  right: 12px;
+  bottom: 36px;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: #1a73e8;
+  font-size: 18px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+}
+
+.map-here-button > span {
+  /* 矢印を北東向きにする */
+  transform: rotate(-45deg);
+}
+
+.map-here-button:disabled {
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+.map-here-button:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+/* 地図の上に出す案内 */
+.map-alert {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  left: 64px;
+  z-index: 1000;
+  margin: 0;
+  /* 地図が透けて読みにくくならないよう不透明にする */
+  background: var(--surface);
+  font-size: 14px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.2);
+}
+
 /* ピンの吹き出し（Leaflet の吹き出しの色をアプリに合わせる） */
 .map .leaflet-popup-content-wrapper,
 .map .leaflet-popup-tip {
