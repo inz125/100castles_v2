@@ -12,7 +12,8 @@
     "test:run": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "prettier --check . && oxlint --deny-warnings && tsc -b && vitest run"
+    "check": "prettier --check . && oxlint --deny-warnings && tsc -b && vitest run",
+    "test:emulator": "firebase emulators:exec --only firestore --project demo-castles \"vitest run --config vitest.emulator.config.ts\""
   },
   "dependencies": {
     "firebase": "^12.19.0",

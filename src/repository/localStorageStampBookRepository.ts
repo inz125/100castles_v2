@@ -1,5 +1,5 @@
 import type { StampBook } from '../domain/stampBook'
-import { isIsoDate, type StampRecord } from '../domain/stampRecord'
+import { isStampRecord, type StampRecord } from '../domain/stampRecord'
 import { BookListeners } from './bookListeners'
 import { UnsupportedVersionError, type StampBookRepository } from './stampBookRepository'
 
@@ -114,10 +114,4 @@ function parse(raw: string): { records: Records; hasInvalidRecords: boolean } | 
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isStampRecord(value: unknown): value is StampRecord {
-  if (!isObject(value) || typeof value.memo !== 'string') return false
-  const { stampedOn } = value
-  return stampedOn === null || (typeof stampedOn === 'string' && isIsoDate(stampedOn))
 }
