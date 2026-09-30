@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -77,6 +77,55 @@ describe('App', () => {
       await userEvent.click(await screen.findByRole('button', { name: '押印済み' }))
       expect(screen.getByText('該当する城はありません')).toBeInTheDocument()
       expect(localStorage.getItem(FILTER_STORAGE_KEY)).toBe('stamped')
+    })
+  })
+
+  describe('タブバー', () => {
+    const tabBar = () => screen.getByRole('navigation', { name: 'タブ' })
+    const tab = (name: string) => within(tabBar()).getByRole('link', { name })
+
+    it('一覧・近く・地図のタブがあり、開いているタブが選択状態になる', async () => {
+      renderApp()
+      await screen.findByText('0/100')
+      expect(
+        within(tabBar())
+          .getAllByRole('link')
+          .map((l) => l.textContent),
+      ).toEqual(['一覧', '近く', '地図'])
+      expect(tab('一覧')).toHaveAttribute('aria-current', 'page')
+      expect(tab('近く')).not.toHaveAttribute('aria-current')
+    })
+
+    it.each([
+      ['近く', '近くの城'],
+      ['地図', '地図'],
+    ])('「%s」タブで %s の画面に切り替わる', async (tabName, heading) => {
+      renderApp()
+      await screen.findByText('0/100')
+      await userEvent.click(tab(tabName))
+      expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
+      expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+      expect(tab(tabName)).toHaveAttribute('aria-current', 'page')
+    })
+
+    it('「一覧」タブで一覧に戻る', async () => {
+      renderApp(undefined, '/map')
+      await userEvent.click(await screen.findByRole('link', { name: '一覧' }))
+      expect(screen.getAllByRole('listitem')).toHaveLength(100)
+    })
+
+    it.each([
+      ['/nearby', '近くの城'],
+      ['/map', '地図'],
+    ])('URL（%s）で直接開ける', async (path, heading) => {
+      renderApp(undefined, path)
+      expect(await screen.findByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
+    })
+
+    it('詳細画面でもタブバーを表示する', async () => {
+      renderApp(undefined, '/castles/59')
+      await screen.findByRole('heading', { level: 2, name: '姫路城' })
+      expect(tabBar()).toBeInTheDocument()
     })
   })
 

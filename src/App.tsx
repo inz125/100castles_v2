@@ -8,6 +8,9 @@ import { UnsupportedVersionError, type StampBookRepository } from './repository/
 import { CastleDetailPage, CastleNotFound } from './ui/CastleDetailPage'
 import { CastleListPage } from './ui/CastleListPage'
 import { loadStampFilter, saveStampFilter } from './ui/filterPreference'
+import { MapPage } from './ui/MapPage'
+import { NearbyPage } from './ui/NearbyPage'
+import { TabBar } from './ui/TabBar'
 
 type Props = {
   repository: StampBookRepository
@@ -81,6 +84,8 @@ function App({ repository, preferenceStorage, now = () => new Date() }: Props) {
               <CastleListPage book={state.book} filter={filter} onFilterChange={changeFilter} />
             }
           />
+          <Route path="nearby" element={<NearbyPage />} />
+          <Route path="map" element={<MapPage />} />
           <Route
             path="castles/:number"
             element={
@@ -94,6 +99,7 @@ function App({ repository, preferenceStorage, now = () => new Date() }: Props) {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
+      <TabBar />
     </main>
   )
 }

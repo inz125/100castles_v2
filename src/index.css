@@ -20,6 +20,7 @@
   --gutter: 16px;
   --max-width: 640px;
   --tap: 44px;
+  --tab-bar-height: 56px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -79,9 +80,10 @@ textarea {
 .app {
   max-width: var(--max-width);
   margin: 0 auto;
-  /* iPhone のノッチ・ホームインジケータを避ける */
+  /* iPhone のノッチ・ホームインジケータと、下部のタブバーを避ける */
   padding: env(safe-area-inset-top) calc(var(--gutter) + env(safe-area-inset-right))
-    calc(32px + env(safe-area-inset-bottom)) calc(var(--gutter) + env(safe-area-inset-left));
+    calc(32px + var(--tab-bar-height) + env(safe-area-inset-bottom))
+    calc(var(--gutter) + env(safe-area-inset-left));
 }
 
 .app-header {
@@ -107,6 +109,62 @@ textarea {
   border-radius: var(--radius);
   background: var(--vermilion-soft);
   color: var(--vermilion);
+  font-weight: 600;
+}
+
+/* ===== タブバー ===== */
+.tab-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.tab-bar__tab {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: var(--tab-bar-height);
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tab-bar__tab[aria-current='page'] {
+  color: var(--vermilion);
+}
+
+/* 選択中のタブの上端に朱の線を引く */
+.tab-bar__tab[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(50% - 16px);
+  width: 32px;
+  height: 3px;
+  border-radius: 0 0 3px 3px;
+  background: var(--vermilion);
+}
+
+.tab-bar__tab:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: -4px;
+}
+
+/* ===== タブの画面（近く・地図） ===== */
+.page {
+  padding-top: 8px;
+}
+
+.page__title {
+  font-family: var(--font-mincho);
+  font-size: 22px;
   font-weight: 600;
 }
 
