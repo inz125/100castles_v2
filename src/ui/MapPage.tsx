@@ -9,6 +9,7 @@ import { isStamped, type StampRecord } from '../domain/stampRecord'
 import type { LocationProvider } from '../location/locationProvider'
 import { CastleLink } from './castleLinks'
 import { locationErrorMessage } from './locationMessages'
+import { loadMapView, saveMapView } from './mapViewPreference'
 
 /** 国土地理院の標準地図タイル */
 const GSI_TILE_URL = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'
@@ -17,9 +18,13 @@ const GSI_ATTRIBUTION =
 /** 標準地図が提供されている最大の拡大率 */
 const GSI_MAX_ZOOM = 18
 
-/** 日本全体が収まる表示 */
-const JAPAN_CENTER: L.LatLngTuple = [36.5, 137.5]
-const JAPAN_ZOOM = 5
+/**
+ * 初めて開いたときの表示：100 城すべてが収まる範囲（北海道〜沖縄）。
+ * 端のピンが画面の縁に掛からないよう、範囲を少し広げておく
+ */
+const ALL_CASTLES_BOUNDS = L.latLngBounds(
+  castles.map((c): L.LatLngTuple => [c.latitude, c.longitude]),
+).pad(0.05)
 
 /** ピンのタップ領域（見た目の点は CSS でこれより小さく描く） */
 const PIN_SIZE = 28
@@ -39,10 +44,12 @@ const MOVE_LABEL = '現在地へ移動'
 type Props = {
   book: StampBook
   locationProvider: LocationProvider
+  /** 表示位置と拡大率を覚えておく先 */
+  preferenceStorage: Storage
 }
 
 /** 地図タブ：100 城すべてをピンで表示する（絞り込みなし） */
-export function MapPage({ book, locationProvider }: Props) {
+export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   // 吹き出しを開いている城の番号
@@ -88,14 +95,30 @@ export function MapPage({ book, locationProvider }: Props) {
   }
 
   useEffect(() => {
-    const map = L.map(containerRef.current!, { center: JAPAN_CENTER, zoom: JAPAN_ZOOM })
+    // 拡大率を 0.5 刻みにする（1 刻みだと、縦長の iPhone で日本全体を収めたとき小さくなりすぎる）
+    const map = L.map(containerRef.current!, { zoomSnap: 0.5 })
     L.tileLayer(GSI_TILE_URL, { attribution: GSI_ATTRIBUTION, maxZoom: GSI_MAX_ZOOM }).addTo(map)
+    // 動かすたびに表示位置を覚え、次に開いたときに使う
+    map.on('moveend', () => {
+      const center = map.getCenter()
+      saveMapView(preferenceStorage, {
+        latitude: center.lat,
+        longitude: center.lng,
+        zoom: map.getZoom(),
+      })
+    })
+    const saved = loadMapView(preferenceStorage)
+    if (saved) {
+      map.setView([saved.latitude, saved.longitude], saved.zoom)
+    } else {
+      map.fitBounds(ALL_CASTLES_BOUNDS)
+    }
     mapRef.current = map
     return () => {
       map.remove()
       mapRef.current = null
     }
-  }, [])
+  }, [preferenceStorage])
 
   // 記録が変わったらピンを立て直す（押印の状態で色が変わるため）
   useEffect(() => {

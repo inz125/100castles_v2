@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { castles } from '../domain/castles'
 import type { StampBook } from '../domain/stampBook'
 import type { LocationProvider, LocationResult } from '../location/locationProvider'
 import { MapPage } from './MapPage'
+import { loadMapView, saveMapView } from './mapViewPreference'
 
 /** 現在地の取得が終わらない窓口 */
 const pendingLocation: LocationProvider = { getCurrentPosition: () => new Promise(() => {}) }
@@ -13,10 +14,14 @@ const pendingLocation: LocationProvider = { getCurrentPosition: () => new Promis
 function renderPage(book: StampBook = {}, locationProvider = pendingLocation) {
   return render(
     <MemoryRouter initialEntries={['/map']}>
-      <MapPage book={book} locationProvider={locationProvider} />
+      <MapPage book={book} locationProvider={locationProvider} preferenceStorage={localStorage} />
     </MemoryRouter>,
   )
 }
+
+beforeEach(() => {
+  localStorage.clear()
+})
 
 const pins = () => [...document.querySelectorAll<HTMLElement>('.leaflet-marker-icon.map-pin')]
 const pinOf = (name: string) => pins().find((p) => p.title === name)!
@@ -83,6 +88,7 @@ describe('MapPage：城のピン', () => {
         <MapPage
           book={{ 59: { stampedOn: '2026-09-30', memo: '' } }}
           locationProvider={pendingLocation}
+          preferenceStorage={localStorage}
         />
       </MemoryRouter>,
     )
@@ -192,5 +198,37 @@ describe('MapPage：現在地', () => {
     await userEvent.click(moveButton())
     responders[2]({ status: 'ok', position: HERE })
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+  })
+})
+
+describe('MapPage：表示位置を覚える', () => {
+  // 姫路駅付近
+  const HERE = { latitude: 34.8266, longitude: 134.6907 }
+  const okProvider: LocationProvider = {
+    getCurrentPosition: async () => ({ status: 'ok', position: HERE }),
+  }
+
+  it('初回は 100 城すべてが収まる表示にし、その表示を覚える', () => {
+    renderPage()
+    const view = loadMapView(localStorage)!
+    // 北海道（根室）から沖縄（首里）までの中間あたりが中心になる
+    expect(view.latitude).toBeGreaterThan(30)
+    expect(view.latitude).toBeLessThan(40)
+    expect(view.longitude).toBeGreaterThan(132)
+    expect(view.longitude).toBeLessThan(140)
+  })
+
+  it('地図を動かしたら表示位置と拡大率を覚える', async () => {
+    renderPage({}, okProvider)
+    await userEvent.click(await screen.findByRole('button', { name: '現在地へ移動' }))
+    await waitFor(() => expect(loadMapView(localStorage)).toEqual({ ...HERE, zoom: 12 }))
+  })
+
+  it('前回の表示位置と拡大率で開く', () => {
+    const saved = { latitude: 26.2172, longitude: 127.7194, zoom: 14 }
+    saveMapView(localStorage, saved)
+    renderPage()
+    // 開いたときの表示で上書きされていない＝前回の表示で開いている
+    expect(loadMapView(localStorage)).toEqual(saved)
   })
 })
