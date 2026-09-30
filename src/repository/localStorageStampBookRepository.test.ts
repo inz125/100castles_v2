@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { LocalStorageStampBookRepository, STORAGE_KEY } from './localStorageStampBookRepository'
+import { UnsupportedVersionError } from './stampBookRepository'
 import { describeStampBookRepositoryContract } from './stampBookRepository.contract'
 
 const NOW = 1_790_000_000_000
@@ -74,6 +75,44 @@ describe('LocalStorageStampBookRepository', () => {
       await createRepository().saveRecord(59, { stampedOn: '2026-09-30', memo: '' })
       await createRepository().load()
       expect(localStorage.length).toBe(1)
+    })
+  })
+
+  describe('バージョン', () => {
+    it.each([
+      ['version がない', '{"records":{}}'],
+      ['version が整数でない', '{"version":"1","records":{}}'],
+      ['version が 0', '{"version":0,"records":{}}'],
+    ])('%s：壊れたデータとして退避する', async (_, raw) => {
+      localStorage.setItem(STORAGE_KEY, raw)
+      expect(await createRepository().load()).toEqual({})
+      expect(localStorage.getItem(BACKUP_KEY)).toBe(raw)
+    })
+
+    describe('アプリが知らない新しいバージョン', () => {
+      const raw = JSON.stringify({ version: 2, records: { 59: { stampedOn: '2026-09-30' } } })
+
+      beforeEach(() => {
+        localStorage.setItem(STORAGE_KEY, raw)
+      })
+
+      it('読み込むと UnsupportedVersionError になり、データには触れない', async () => {
+        await expect(createRepository().load()).rejects.toBeInstanceOf(UnsupportedVersionError)
+        expect(localStorage.getItem(STORAGE_KEY)).toBe(raw)
+        expect(localStorage.length).toBe(1)
+      })
+
+      it('保存しようとしても UnsupportedVersionError になり、データには触れない', async () => {
+        await expect(
+          createRepository().saveRecord(1, { stampedOn: null, memo: '' }),
+        ).rejects.toBeInstanceOf(UnsupportedVersionError)
+        expect(localStorage.getItem(STORAGE_KEY)).toBe(raw)
+        expect(localStorage.length).toBe(1)
+      })
+
+      it('エラーにデータのバージョンを持つ', async () => {
+        await expect(createRepository().load()).rejects.toMatchObject({ version: 2 })
+      })
     })
   })
 })

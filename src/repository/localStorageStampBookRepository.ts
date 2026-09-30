@@ -1,13 +1,15 @@
 import type { StampBook } from '../domain/stampBook'
 import { isIsoDate, type StampRecord } from '../domain/stampRecord'
-import type { StampBookRepository } from './stampBookRepository'
+import { UnsupportedVersionError, type StampBookRepository } from './stampBookRepository'
 
 export const STORAGE_KEY = 'castles100.stampBook'
+
+const CURRENT_VERSION = 1
 
 type Records = Record<number, StampRecord>
 
 type StoredData = {
-  version: 1
+  version: typeof CURRENT_VERSION
   records: Records
 }
 
@@ -50,7 +52,7 @@ export class LocalStorageStampBookRepository implements StampBookRepository {
   }
 
   private write(records: Records): void {
-    const data: StoredData = { version: 1, records }
+    const data: StoredData = { version: CURRENT_VERSION, records }
     this.storage.setItem(STORAGE_KEY, JSON.stringify(data))
   }
 
@@ -59,7 +61,21 @@ export class LocalStorageStampBookRepository implements StampBookRepository {
   }
 }
 
-/** 保存データを解釈する。全体が読めなければ null */
+type RawData = Record<string, unknown>
+
+/** MIGRATIONS[n]：バージョン n のデータをバージョン n + 1 の形に変換する */
+const MIGRATIONS: Record<number, (data: RawData) => RawData> = {}
+
+function migrate(data: RawData, from: number): RawData {
+  let migrated = data
+  for (let v = from; v < CURRENT_VERSION; v++) migrated = MIGRATIONS[v](migrated)
+  return migrated
+}
+
+/**
+ * 保存データを解釈する。全体が読めなければ null。
+ * 新しいバージョンのデータなら UnsupportedVersionError を投げる。
+ */
 function parse(raw: string): { records: Records; hasInvalidRecords: boolean } | null {
   let data: unknown
   try {
@@ -67,11 +83,18 @@ function parse(raw: string): { records: Records; hasInvalidRecords: boolean } | 
   } catch {
     return null
   }
-  if (!isObject(data) || !isObject(data.records)) return null
+  if (!isObject(data)) return null
+
+  const { version } = data
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) return null
+  if (version > CURRENT_VERSION) throw new UnsupportedVersionError(version)
+
+  const migrated = migrate(data, version)
+  if (!isObject(migrated.records)) return null
 
   const records: Records = {}
   let hasInvalidRecords = false
-  for (const [key, value] of Object.entries(data.records)) {
+  for (const [key, value] of Object.entries(migrated.records)) {
     if (/^[1-9]\d*$/.test(key) && isStampRecord(value)) {
       records[Number(key)] = { stampedOn: value.stampedOn, memo: value.memo }
     } else {
