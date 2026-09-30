@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { castles } from '../domain/castles'
@@ -15,6 +15,11 @@ function renderPage(book: StampBook = {}) {
 
 const pins = () => [...document.querySelectorAll<HTMLElement>('.leaflet-marker-icon.map-pin')]
 const pinOf = (name: string) => pins().find((p) => p.title === name)!
+/**
+ * ピンをタップする。userEvent だと続けてのクリックがダブルクリック扱いになり、
+ * レイアウトのない jsdom では Leaflet が位置を計算できないため、クリックだけを送る
+ */
+const tapPin = (name: string) => fireEvent.click(pinOf(name))
 
 describe('MapPage：地図の表示', () => {
   it('見出しと地図の領域がある', () => {
@@ -75,5 +80,40 @@ describe('MapPage：城のピン', () => {
     )
     expect(pins()).toHaveLength(100)
     expect(pinOf('姫路城')).toHaveClass('map-pin--stamped')
+  })
+})
+
+describe('MapPage：ピンの吹き出し', () => {
+  const popup = () => screen.getByRole('dialog', { name: /の情報$/ })
+
+  it('ピンをタップすると城名・番号・押印の状態を表示する', () => {
+    renderPage({ 59: { stampedOn: '2026-09-30', memo: '' } })
+    tapPin('姫路城')
+    expect(within(popup()).getByText('姫路城')).toBeInTheDocument()
+    expect(within(popup()).getByText('No.59')).toBeInTheDocument()
+    expect(within(popup()).getByText('押印済み（2026-09-30）')).toBeInTheDocument()
+  })
+
+  it('未押印の城は未押印と表示する', () => {
+    renderPage()
+    tapPin('首里城')
+    expect(within(popup()).getByText('未押印')).toBeInTheDocument()
+  })
+
+  it('「詳細を見る」は詳細画面へのリンク', () => {
+    renderPage()
+    tapPin('首里城')
+    expect(within(popup()).getByRole('link', { name: '詳細を見る' })).toHaveAttribute(
+      'href',
+      '/castles/100',
+    )
+  })
+
+  it('別のピンをタップすると吹き出しがその城に替わる', () => {
+    renderPage()
+    tapPin('姫路城')
+    tapPin('首里城')
+    expect(screen.getAllByRole('dialog')).toHaveLength(1)
+    expect(within(popup()).getByText('首里城')).toBeInTheDocument()
   })
 })

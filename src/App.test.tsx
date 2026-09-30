@@ -123,6 +123,22 @@ describe('App', () => {
     })
   })
 
+  describe('地図タブ', () => {
+    it('ピンの吹き出しの「詳細を見る」で詳細画面を開き、「地図に戻る」で地図に戻る', async () => {
+      renderApp(undefined, '/map')
+      await screen.findByRole('region', { name: '城の地図' })
+      const pin = [...document.querySelectorAll<HTMLElement>('.map-pin')].find(
+        (p) => p.title === '姫路城',
+      )!
+      fireEvent.click(pin)
+      await userEvent.click(screen.getByRole('link', { name: '詳細を見る' }))
+      expect(screen.getByRole('heading', { level: 2, name: '姫路城' })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('link', { name: '地図に戻る' }))
+      expect(await screen.findByRole('region', { name: '城の地図' })).toBeInTheDocument()
+    })
+  })
+
   describe('タブバー', () => {
     const tabBar = () => screen.getByRole('navigation', { name: 'タブ' })
     const tab = (name: string) => within(tabBar()).getByRole('link', { name })
