@@ -1,4 +1,4 @@
-import type { Castle } from './castles'
+import { REGIONS, type Castle, type Region } from './castles'
 import { createEmptyRecord, isStamped, type StampRecord } from './stampRecord'
 
 /**
@@ -20,4 +20,20 @@ export function getRecord(book: StampBook, castleNumber: number): StampRecord {
 export function progressOf(targets: readonly Castle[], book: StampBook): Progress {
   const stamped = targets.filter((c) => isStamped(getRecord(book, c.number))).length
   return { stamped, total: targets.length }
+}
+
+export type RegionGroup = {
+  region: Region
+  castles: readonly Castle[]
+  progress: Progress
+}
+
+/** 城を地方ごとにまとめる（地方は REGIONS の順、城は番号順） */
+export function groupByRegion(targets: readonly Castle[], book: StampBook): RegionGroup[] {
+  return REGIONS.map((region) => {
+    const inRegion = targets
+      .filter((c) => c.region === region)
+      .toSorted((a, b) => a.number - b.number)
+    return { region, castles: inRegion, progress: progressOf(inRegion, book) }
+  })
 }
