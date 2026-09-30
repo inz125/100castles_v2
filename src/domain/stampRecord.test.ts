@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createEmptyRecord, isStamped, setStamped } from './stampRecord'
+import { createEmptyRecord, isStamped, setMemo, setStamped, setStampedDate } from './stampRecord'
 
 describe('記録', () => {
   it('初期値は未押印・押印日なし・メモ空', () => {
@@ -46,6 +46,49 @@ describe('setStamped', () => {
   it('元の記録は書き換えない', () => {
     const original = createEmptyRecord()
     setStamped(original, true, TODAY)
+    expect(original).toEqual(createEmptyRecord())
+  })
+})
+
+describe('setStampedDate', () => {
+  const stamped = { stampedOn: '2026-09-30', memo: 'メモ' }
+
+  it('押印済みなら押印日を変更できる', () => {
+    expect(setStampedDate(stamped, '2026-05-05')).toEqual({ stampedOn: '2026-05-05', memo: 'メモ' })
+  })
+
+  it('未押印なら押印日を設定できない（記録は変わらない）', () => {
+    const record = createEmptyRecord()
+    expect(setStampedDate(record, '2026-05-05')).toEqual(record)
+  })
+
+  it.each(['', '2026-5-5', '2026/05/05', '2026-02-30', 'abc'])(
+    '日付として正しくない値 "%s" では押印日は変わらない',
+    (value) => {
+      expect(setStampedDate(stamped, value)).toEqual(stamped)
+    },
+  )
+
+  it('元の記録は書き換えない', () => {
+    const original = { ...stamped }
+    setStampedDate(original, '2026-05-05')
+    expect(original).toEqual(stamped)
+  })
+})
+
+describe('setMemo', () => {
+  it('メモを変更できる（押印日は変わらない）', () => {
+    const record = { stampedOn: '2026-09-30', memo: '' }
+    expect(setMemo(record, '雨でも登城')).toEqual({ stampedOn: '2026-09-30', memo: '雨でも登城' })
+  })
+
+  it('メモを空にできる', () => {
+    expect(setMemo({ stampedOn: null, memo: 'a' }, '').memo).toBe('')
+  })
+
+  it('元の記録は書き換えない', () => {
+    const original = createEmptyRecord()
+    setMemo(original, 'x')
     expect(original).toEqual(createEmptyRecord())
   })
 })

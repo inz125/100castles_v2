@@ -14,7 +14,7 @@ UI 以外のロジック（ドメイン・Repository）を先に固め、UI は 
 - [x] 1-2. 記録の型と初期値（未押印・押印日 null・メモ空）
 - [x] 1-3. `setStamped(record, true, today)` → 押印済み＋今日の日付（押印済みなら元の日付を残す）
 - [x] 1-4. `setStamped(record, false, today)` → 押印日が消える
-- [ ] 1-5. `setStampedDate` / `setMemo`
+- [x] 1-5. `setStampedDate` / `setMemo`（未押印・不正な日付では押印日を変えない）
 - [ ] 1-6. 全体進捗の集計（`xx/100`）
 - [ ] 1-7. 地方ごとのグループ化（番号順）と地方別進捗
 - [ ] 1-8. 絞り込み（すべて / 未押印 / 押印済み）
