@@ -61,6 +61,7 @@ const MEMO_SAVE_DELAY_MS = 1000
 /**
  * メモの入力欄。入力中は下書きとして持ち、次のときに保存する：
  * 入力が 1 秒止まったとき・入力欄から離れたとき・アプリが隠れたとき・画面を離れるとき。
+ * 保存に失敗しても書いた文字は消さない（押印と違い、元に戻すと文章が失われるため）。
  */
 function MemoField({
   record,
@@ -71,7 +72,6 @@ function MemoField({
 }) {
   const id = useId()
   const [draft, setDraft] = useState(record.memo)
-  const savedMemo = useRef(record.memo)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // タイマーやイベントから呼ばれたときにも最新の値で保存するため、ref に持っておく
   const latest = useRef({ record, onChange, draft })
@@ -83,8 +83,8 @@ function MemoField({
     clearTimeout(timer.current)
     timer.current = undefined
     const { record, onChange, draft } = latest.current
-    if (draft === savedMemo.current) return
-    savedMemo.current = draft
+    // 記録と比べるので、保存に失敗して記録が元に戻ったときは次の機会に保存し直す
+    if (draft === record.memo) return
     onChange(setMemo(record, draft))
   }, [])
 

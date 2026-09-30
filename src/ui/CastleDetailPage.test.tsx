@@ -94,4 +94,20 @@ describe('CastleDetailPage のメモ', () => {
     act(() => vi.advanceTimersByTime(1000))
     expect(onChange).toHaveBeenLastCalledWith({ stampedOn: '2026-09-30', memo: 'abc' })
   })
+
+  it('保存に失敗して記録が元に戻っても入力欄の文字は残し、入力欄から離れたら保存し直す', () => {
+    const { onChange, rerender } = renderPage({ stampedOn: null, memo: '' })
+    typeMemo('abc')
+    fireEvent.blur(memo())
+    expect(onChange).toHaveBeenCalledTimes(1)
+    rerender({ stampedOn: null, memo: 'abc' }) // 画面にはいったん反映される
+
+    rerender({ stampedOn: null, memo: '' }) // 保存に失敗して元に戻る
+    expect(memo()).toHaveValue('abc')
+
+    fireEvent.focus(memo())
+    fireEvent.blur(memo())
+    expect(onChange).toHaveBeenCalledTimes(2)
+    expect(onChange).toHaveBeenLastCalledWith({ stampedOn: null, memo: 'abc' })
+  })
 })

@@ -221,5 +221,33 @@ describe('App', () => {
       await userEvent.click(screen.getByRole('link', { name: /首里城/ }))
       expect(screen.getByRole('textbox', { name: 'メモ' })).toHaveValue('')
     })
+
+    it('保存に失敗しても書いた文字は消えず、入力欄から離れると保存し直す', async () => {
+      const repository = new InMemoryStampBookRepository()
+      const save = repository.saveRecord.bind(repository)
+      let failNext = true
+      repository.saveRecord = (n, r) => {
+        if (failNext) {
+          failNext = false
+          return Promise.reject(new Error('quota exceeded'))
+        }
+        return save(n, r)
+      }
+      renderApp(repository, '/castles/59')
+      const memo = await screen.findByRole('textbox', { name: 'メモ' })
+
+      await userEvent.type(memo, '白鷺城')
+      await userEvent.tab()
+      expect(await screen.findByRole('alert')).toHaveTextContent('保存できませんでした')
+      expect(memo).toHaveValue('白鷺城')
+      expect(await repository.load()).toEqual({})
+
+      await userEvent.click(memo)
+      await userEvent.tab()
+      await waitFor(async () =>
+        expect(await repository.load()).toEqual({ 59: { stampedOn: null, memo: '白鷺城' } }),
+      )
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
   })
 })
