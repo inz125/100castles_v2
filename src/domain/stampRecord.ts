@@ -29,10 +29,11 @@ export function setStamped(record: StampRecord, stamped: boolean, today: IsoDate
 
 /**
  * 押印日を変更する。
- * 未押印の記録や、日付として正しくない値のときは記録を変えずに返す。
+ * 未押印の記録、日付として正しくない値、today より後の日付のときは記録を変えずに返す。
  */
-export function setStampedDate(record: StampRecord, date: string): StampRecord {
-  if (!isStamped(record) || !isIsoDate(date)) return record
+export function setStampedDate(record: StampRecord, date: string, today: IsoDate): StampRecord {
+  // YYYY-MM-DD 同士なので文字列の大小比較で日付の前後を判定できる
+  if (!isStamped(record) || !isIsoDate(date) || date > today) return record
   return { ...record, stampedOn: date }
 }
 

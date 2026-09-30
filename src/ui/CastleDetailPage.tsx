@@ -1,7 +1,13 @@
 import { useId } from 'react'
 import { Link } from 'react-router'
 import type { Castle } from '../domain/castles'
-import { isStamped, setStamped, type IsoDate, type StampRecord } from '../domain/stampRecord'
+import {
+  isStamped,
+  setStamped,
+  setStampedDate,
+  type IsoDate,
+  type StampRecord,
+} from '../domain/stampRecord'
 
 type Props = {
   castle: Castle
@@ -13,6 +19,7 @@ type Props = {
 
 export function CastleDetailPage({ castle, record, today, onChange }: Props) {
   const stampedId = useId()
+  const stampedOnId = useId()
 
   return (
     <article>
@@ -31,9 +38,16 @@ export function CastleDetailPage({ castle, record, today, onChange }: Props) {
         <label htmlFor={stampedId}>押印済み</label>
       </div>
       {record.stampedOn !== null && (
-        <p>
-          押印日 <time dateTime={record.stampedOn}>{record.stampedOn}</time>
-        </p>
+        <div>
+          <label htmlFor={stampedOnId}>押印日</label>
+          <input
+            id={stampedOnId}
+            type="date"
+            value={record.stampedOn}
+            max={today()}
+            onChange={(e) => onChange(setStampedDate(record, e.target.value, today()))}
+          />
+        </div>
       )}
     </article>
   )

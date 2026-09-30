@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -119,7 +119,7 @@ describe('App', () => {
       await userEvent.click(await stampedCheckbox())
 
       expect(await stampedCheckbox()).toBeChecked()
-      expect(screen.getByText('2026-09-30')).toBeInTheDocument()
+      expect(screen.getByLabelText('押印日')).toHaveValue('2026-09-30')
       expect(await repository.load()).toEqual({ 59: { stampedOn: '2026-09-30', memo: '' } })
     })
 
@@ -128,12 +128,12 @@ describe('App', () => {
       await repository.saveRecord(59, { stampedOn: '2026-01-01', memo: 'メモ' })
       renderApp(repository, '/castles/59')
       expect(await stampedCheckbox()).toBeChecked()
-      expect(screen.getByText('2026-01-01')).toBeInTheDocument()
+      expect(screen.getByLabelText('押印日')).toHaveValue('2026-01-01')
 
       await userEvent.click(await stampedCheckbox())
 
       expect(await stampedCheckbox()).not.toBeChecked()
-      expect(screen.queryByText('2026-01-01')).toBeNull()
+      expect(screen.queryByLabelText('押印日')).toBeNull()
       expect(await repository.load()).toEqual({ 59: { stampedOn: null, memo: 'メモ' } })
     })
 
@@ -156,7 +156,44 @@ describe('App', () => {
 
       expect(await screen.findByRole('alert')).toHaveTextContent('保存できませんでした')
       expect(await stampedCheckbox()).not.toBeChecked()
-      expect(screen.queryByText('2026-09-30')).toBeNull()
+      expect(screen.queryByLabelText('押印日')).toBeNull()
+    })
+  })
+
+  describe('詳細画面で押印日を変更する', () => {
+    async function renderStamped() {
+      const repository = new InMemoryStampBookRepository()
+      await repository.saveRecord(59, { stampedOn: '2026-09-01', memo: '' })
+      renderApp(repository, '/castles/59')
+      const dateInput = await screen.findByLabelText<HTMLInputElement>('押印日')
+      return { repository, dateInput }
+    }
+
+    it('日付入力で選べるのは今日まで', async () => {
+      const { dateInput } = await renderStamped()
+      expect(dateInput).toHaveAttribute('type', 'date')
+      expect(dateInput).toHaveAttribute('max', '2026-09-30')
+    })
+
+    it('変更した日付がすぐ保存される', async () => {
+      const { repository, dateInput } = await renderStamped()
+      fireEvent.change(dateInput, { target: { value: '2026-05-05' } })
+
+      expect(dateInput).toHaveValue('2026-05-05')
+      await waitFor(async () =>
+        expect(await repository.load()).toEqual({ 59: { stampedOn: '2026-05-05', memo: '' } }),
+      )
+    })
+
+    it.each([
+      ['未来の日付', '2026-10-01'],
+      ['空欄', ''],
+    ])('%s にしようとしても押印日は変わらない', async (_, value) => {
+      const { repository, dateInput } = await renderStamped()
+      fireEvent.change(dateInput, { target: { value } })
+
+      expect(dateInput).toHaveValue('2026-09-01')
+      expect(await repository.load()).toEqual({ 59: { stampedOn: '2026-09-01', memo: '' } })
     })
   })
 })
