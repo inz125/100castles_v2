@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, type InitialEntry } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
-import type { ShareCode } from './domain/shareCode'
+import { formatShareCode, type ShareCode } from './domain/shareCode'
 import type { LocationProvider } from './location/locationProvider'
 import { InMemoryStampBookRepository } from './repository/inMemoryStampBookRepository'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
 import type { CloudBookStore } from './sharing/cloudBookStore'
 import { InMemoryCloudBookStore } from './sharing/inMemoryCloudBookStore'
-import { saveShareSettings } from './sharing/shareSettings'
+import { loadShareSettings, saveShareSettings } from './sharing/shareSettings'
 import { LIST_FILTER, NEARBY_FILTER } from './ui/filterPreference'
 
 function failingRepository(error: unknown): StampBookRepository {
@@ -202,6 +202,30 @@ describe('App', () => {
         expect(screen.queryByRole('link', { name: '共有' })).toBeNull()
       },
     )
+
+    it('共有を始めると共有コードを表示し、それ以降の変更はクラウドの記録帳に入る', async () => {
+      const local = new InMemoryStampBookRepository()
+      await local.saveRecord(59, { stampedOn: '2026-09-01', memo: '' })
+      const cloud = new InMemoryCloudBookStore()
+      renderApp(local, '/share', pendingLocation, cloud)
+
+      await userEvent.click(await screen.findByRole('button', { name: '共有を始める' }))
+      const code = await waitFor(() => {
+        const settings = loadShareSettings(localStorage)
+        expect(settings).not.toBeNull()
+        return settings!.code
+      })
+      expect(await screen.findByText(formatShareCode(code))).toBeInTheDocument()
+
+      // もう 1 人の変更が届き、自分の変更はクラウドに入る
+      await cloud.open(code).saveRecord(100, { stampedOn: '2026-09-30', memo: '' })
+      await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
+      expect(await screen.findByText('2/100')).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('link', { name: /首里城/ }))
+      await userEvent.click(screen.getByRole('checkbox', { name: '押印済み' }))
+      await waitFor(async () => expect((await cloud.open(code).load())[100]?.stampedOn).toBeNull())
+      expect(await local.load()).toEqual({ 59: { stampedOn: '2026-09-01', memo: '' } })
+    })
 
     it('URL（/share）で直接開ける', async () => {
       renderApp(undefined, '/share')

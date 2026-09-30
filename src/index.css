@@ -335,6 +335,78 @@ textarea {
   line-height: 1;
 }
 
+/* ===== 共有画面 ===== */
+.share-page .page__title {
+  margin: 4px 0 16px;
+}
+
+.share-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.share-card__title {
+  margin: 0;
+  font-family: var(--font-mincho);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.share-card__text {
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+.share-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.share-card__status {
+  min-height: 1.6em;
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+/* 読み上げて伝えやすいよう、等幅で大きく表示する */
+.share-code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  user-select: all;
+}
+
+.button {
+  min-height: var(--tap);
+  padding: 0 20px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--vermilion);
+  color: var(--on-vermilion);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button--secondary {
+  flex: 1;
+  background: var(--line);
+  color: var(--ink);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
 /* ===== タブの画面（近く） ===== */
 .page {
   padding-top: 8px;

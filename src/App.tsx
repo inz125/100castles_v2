@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes, useMatch, useParams } from 'react-router'
 import { castles } from './domain/castles'
 import { toLocalIsoDate } from './domain/dates'
+import type { ShareCode } from './domain/shareCode'
 import { getRecord, type StampBook, type StampFilter } from './domain/stampBook'
 import type { IsoDate, StampRecord } from './domain/stampRecord'
 import type { LocationProvider } from './location/locationProvider'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
 import type { CloudBookStore } from './sharing/cloudBookStore'
+import { joinSharing } from './sharing/joinSharing'
 import { loadShareSettings } from './sharing/shareSettings'
+import { startSharing } from './sharing/startSharing'
 import { CastleDetailPage, CastleNotFound } from './ui/CastleDetailPage'
 import { CastleListPage } from './ui/CastleListPage'
 import {
@@ -51,11 +54,31 @@ function App({
   const [saveFailed, setSaveFailed] = useState(false)
   // 「共有」は一覧タブの見出しにだけ出す
   const isListTab = useMatch('/') !== null
+  // 共有中の共有コード（共有していない、またはクラウドが使えなければ null）
+  const [shareCode, setShareCode] = useState<ShareCode | null>(() =>
+    cloud ? (loadShareSettings(preferenceStorage)?.code ?? null) : null,
+  )
   // 共有中ならクラウドの記録帳、そうでなければ端末内の記録帳を使う
-  const [repository] = useState(() => {
-    const settings = loadShareSettings(preferenceStorage)
-    return settings && cloud ? cloud.open(settings.code) : localRepository
-  })
+  const repository = useMemo(
+    () => (shareCode && cloud ? cloud.open(shareCode) : localRepository),
+    [shareCode, cloud, localRepository],
+  )
+
+  /** 共有を始め、以降はクラウドの記録帳を使う */
+  const startSharingHere = async () => {
+    if (!cloud) throw new Error('クラウドが使えません')
+    const code = await startSharing({ local: localRepository, cloud, storage: preferenceStorage })
+    setShareCode(code)
+    return code
+  }
+
+  /** 共有に参加し、以降はクラウドの記録帳を使う */
+  const joinSharingHere = async (input: string) => {
+    if (!cloud) throw new Error('クラウドが使えません')
+    const result = await joinSharing({ input, cloud, storage: preferenceStorage })
+    if (result.status === 'joined') setShareCode(result.code)
+    return result
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -153,7 +176,16 @@ function App({
               />
             }
           />
-          <Route path="share" element={<SharePage />} />
+          <Route
+            path="share"
+            element={
+              <SharePage
+                shareCode={shareCode}
+                onStartSharing={startSharingHere}
+                onJoinSharing={joinSharingHere}
+              />
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
