@@ -4,6 +4,7 @@ import { castles } from './domain/castles'
 import { toLocalIsoDate } from './domain/dates'
 import { getRecord, type StampBook, type StampFilter } from './domain/stampBook'
 import type { IsoDate, StampRecord } from './domain/stampRecord'
+import type { LocationProvider } from './location/locationProvider'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
 import { CastleDetailPage, CastleNotFound } from './ui/CastleDetailPage'
 import { CastleListPage } from './ui/CastleListPage'
@@ -16,6 +17,8 @@ type Props = {
   repository: StampBookRepository
   /** 絞り込みの選択など、表示の好みを保存する先 */
   preferenceStorage: Storage
+  /** 現在地を取得する窓口 */
+  locationProvider: LocationProvider
   /** 現在時刻（テストで日付を固定するため差し替えられるようにしている） */
   now?: () => Date
 }
@@ -23,7 +26,7 @@ type Props = {
 type LoadState =
   { status: 'loading' } | { status: 'ready'; book: StampBook } | { status: 'error'; error: unknown }
 
-function App({ repository, preferenceStorage, now = () => new Date() }: Props) {
+function App({ repository, preferenceStorage, locationProvider, now = () => new Date() }: Props) {
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [filter, setFilter] = useState<StampFilter>(() => loadStampFilter(preferenceStorage))
   const [saveFailed, setSaveFailed] = useState(false)
@@ -84,7 +87,7 @@ function App({ repository, preferenceStorage, now = () => new Date() }: Props) {
               <CastleListPage book={state.book} filter={filter} onFilterChange={changeFilter} />
             }
           />
-          <Route path="nearby" element={<NearbyPage />} />
+          <Route path="nearby" element={<NearbyPage locationProvider={locationProvider} />} />
           <Route path="map" element={<MapPage />} />
           <Route
             path="castles/:number"

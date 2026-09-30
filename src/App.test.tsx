@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, type InitialEntry } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
+import type { LocationProvider } from './location/locationProvider'
 import { InMemoryStampBookRepository } from './repository/inMemoryStampBookRepository'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
 import { FILTER_STORAGE_KEY } from './ui/filterPreference'
@@ -14,6 +15,9 @@ function failingRepository(error: unknown): StampBookRepository {
   }
 }
 
+/** 現在地の取得が終わらない窓口（近くタブの中身は NearbyPage のテストで確かめる） */
+const pendingLocation: LocationProvider = { getCurrentPosition: () => new Promise(() => {}) }
+
 /** 日本時間の 2026-09-30 00:30（UTC ではまだ 9/29） */
 const NOW = new Date(2026, 8, 30, 0, 30)
 
@@ -23,7 +27,12 @@ function renderApp(
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <App repository={repository} preferenceStorage={localStorage} now={() => NOW} />
+      <App
+        repository={repository}
+        preferenceStorage={localStorage}
+        locationProvider={pendingLocation}
+        now={() => NOW}
+      />
     </MemoryRouter>,
   )
 }
