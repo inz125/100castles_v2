@@ -29,3 +29,21 @@ export function generateShareCode(randomBytes: RandomBytes = cryptoRandomBytes):
   }
   return code as ShareCode
 }
+
+/** 表示用：4 文字ずつハイフンで区切る（例：ABCD-2345-EFGH） */
+export function formatShareCode(code: ShareCode): string {
+  return code.match(/.{1,4}/g)!.join('-')
+}
+
+/** 区切りとして読み飛ばす文字：空白・ハイフン類・長音記号（日本語入力のまま打った場合） */
+const SEPARATORS = /[\s\-‐−ー]/g
+const VALID_CODE = new RegExp(`^[${SHARE_CODE_ALPHABET}]{${SHARE_CODE_LENGTH}}$`)
+
+/**
+ * 入力された共有コードを読む。大文字・小文字、全角・半角、区切りの有無は区別しない。
+ * 形式に合わなければ null
+ */
+export function parseShareCode(input: string): ShareCode | null {
+  const normalized = input.normalize('NFKC').toUpperCase().replace(SEPARATORS, '')
+  return VALID_CODE.test(normalized) ? (normalized as ShareCode) : null
+}

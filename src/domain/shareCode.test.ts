@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatShareCode,
   generateShareCode,
+  parseShareCode,
   SHARE_CODE_ALPHABET,
   SHARE_CODE_LENGTH,
   type RandomBytes,
+  type ShareCode,
 } from './shareCode'
 
 /** 決まったバイト列を順に返す乱数（足りなくなったら例外） */
@@ -52,5 +55,40 @@ describe('generateShareCode', () => {
   it('毎回ちがうコードになる', () => {
     const codes = new Set(Array.from({ length: 100 }, () => generateShareCode()))
     expect(codes.size).toBe(100)
+  })
+})
+
+describe('formatShareCode', () => {
+  it('4 文字ずつハイフンで区切る', () => {
+    expect(formatShareCode('ABCD2345EFGH' as ShareCode)).toBe('ABCD-2345-EFGH')
+  })
+})
+
+describe('parseShareCode', () => {
+  it.each([
+    ['区切りなし', 'ABCD2345EFGH'],
+    ['ハイフン区切り', 'ABCD-2345-EFGH'],
+    ['小文字', 'abcd-2345-efgh'],
+    ['空白区切り・前後の空白', '  ABCD 2345 EFGH '],
+    ['全角の英数字とハイフン', 'ＡＢＣＤ－２３４５－ＥＦＧＨ'],
+    ['長音記号や全角空白で区切る', 'ABCDー2345　EFGH'],
+  ])('%s でも読める', (_, input) => {
+    expect(parseShareCode(input)).toBe('ABCD2345EFGH')
+  })
+
+  it.each([
+    ['空', ''],
+    ['短い', 'ABCD-2345-EFG'],
+    ['長い', 'ABCD-2345-EFGHJ'],
+    ['使わない文字（O）', 'ABCD-2345-EFGO'],
+    ['使わない文字（1）', 'ABCD-2345-EFG1'],
+    ['記号', 'ABCD-2345-EFG!'],
+  ])('%s なら null', (_, input) => {
+    expect(parseShareCode(input)).toBeNull()
+  })
+
+  it('作ったコードを表示形式にしても読める', () => {
+    const code = generateShareCode()
+    expect(parseShareCode(formatShareCode(code))).toBe(code)
   })
 })
