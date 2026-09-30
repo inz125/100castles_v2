@@ -62,11 +62,17 @@ function App({ repository, preferenceStorage, now = () => new Date() }: Props) {
   }
 
   return (
-    <main>
-      <h1>100名城スタンプ帳</h1>
-      {state.status === 'loading' && <p>読み込み中…</p>}
+    <main className="app">
+      <header className="app-header">
+        <h1 className="app-title">100名城スタンプ帳</h1>
+      </header>
+      {state.status === 'loading' && <p className="empty">読み込み中…</p>}
       {state.status === 'error' && <LoadError error={state.error} />}
-      {saveFailed && <p role="alert">保存できませんでした。もう一度お試しください。</p>}
+      {saveFailed && (
+        <p role="alert" className="alert">
+          保存できませんでした。もう一度お試しください。
+        </p>
+      )}
       {state.status === 'ready' && (
         <Routes>
           <Route
@@ -116,7 +122,7 @@ function CastleDetailRoute({ book, today, onChange }: CastleDetailRouteProps) {
 
 function LoadError({ error }: { error: unknown }) {
   return (
-    <p role="alert">
+    <p role="alert" className="alert">
       {error instanceof UnsupportedVersionError
         ? '保存データがこのアプリより新しい形式です。アプリを更新してください。'
         : '記録を読み込めませんでした。'}

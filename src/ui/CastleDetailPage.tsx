@@ -9,6 +9,7 @@ import {
   type IsoDate,
   type StampRecord,
 } from '../domain/stampRecord'
+import { StampMark } from './StampMark'
 
 type Props = {
   castle: Castle
@@ -23,34 +24,48 @@ export function CastleDetailPage({ castle, record, today, onChange }: Props) {
   const stampedOnId = useId()
 
   return (
-    <article>
+    <article className="detail">
       <BackToListLink />
-      <p>{castle.number}</p>
-      <h2>{castle.name}</h2>
-      <p>{castle.prefecture}</p>
-
-      <div>
-        <input
-          id={stampedId}
-          type="checkbox"
-          checked={isStamped(record)}
-          onChange={(e) => onChange(setStamped(record, e.target.checked, today()))}
-        />
-        <label htmlFor={stampedId}>押印済み</label>
-      </div>
-      {record.stampedOn !== null && (
+      <header className="detail__header">
         <div>
-          <label htmlFor={stampedOnId}>押印日</label>
+          <p className="detail__meta">
+            <span className="detail__number">{castle.number}</span>
+            <span>{castle.prefecture}</span>
+          </p>
+          <h2 className="detail__name">{castle.name}</h2>
+        </div>
+        {isStamped(record) && <StampMark size="large" />}
+      </header>
+
+      <div className="card">
+        <div className="field field--toggle">
+          <label htmlFor={stampedId}>押印済み</label>
           <input
-            id={stampedOnId}
-            type="date"
-            value={record.stampedOn}
-            max={today()}
-            onChange={(e) => onChange(setStampedDate(record, e.target.value, today()))}
+            id={stampedId}
+            type="checkbox"
+            className="toggle"
+            checked={isStamped(record)}
+            onChange={(e) => onChange(setStamped(record, e.target.checked, today()))}
           />
         </div>
-      )}
-      <MemoField record={record} onChange={onChange} />
+        {record.stampedOn !== null && (
+          <div className="field field--inline">
+            <label htmlFor={stampedOnId}>押印日</label>
+            <input
+              id={stampedOnId}
+              type="date"
+              className="input"
+              value={record.stampedOn}
+              max={today()}
+              onChange={(e) => onChange(setStampedDate(record, e.target.value, today()))}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <MemoField record={record} onChange={onChange} />
+      </div>
     </article>
   )
 }
@@ -100,10 +115,13 @@ function MemoField({
   }, [flush])
 
   return (
-    <div>
+    <div className="field">
       <label htmlFor={id}>メモ</label>
       <textarea
         id={id}
+        className="input memo"
+        rows={5}
+        placeholder="見どころ、スタンプの場所、次に行くときのことなど"
         value={draft}
         onChange={(e) => {
           setDraft(e.target.value)
@@ -118,13 +136,17 @@ function MemoField({
 
 export function CastleNotFound() {
   return (
-    <div>
+    <div className="detail">
       <BackToListLink />
-      <p>城が見つかりません</p>
+      <p className="empty">城が見つかりません</p>
     </div>
   )
 }
 
 function BackToListLink() {
-  return <Link to="/">一覧に戻る</Link>
+  return (
+    <Link to="/" className="back-link">
+      一覧に戻る
+    </Link>
+  )
 }
