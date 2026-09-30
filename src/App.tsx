@@ -100,7 +100,7 @@ function App({ repository, preferenceStorage, locationProvider, now = () => new 
               />
             }
           />
-          <Route path="map" element={<MapPage />} />
+          <Route path="map" element={<MapPage book={state.book} />} />
           <Route
             path="castles/:number"
             element={

@@ -185,6 +185,31 @@ textarea {
   font-family: var(--font-gothic);
 }
 
+/* 城のピン：押印済みは朱、未押印は墨。タップ領域の中央に点を描く
+   （leaflet.css は後から読み込まれるので、.leaflet-marker-icon の display に勝つよう詳細度を上げる） */
+.leaflet-marker-icon.map-pin {
+  display: grid;
+  place-items: center;
+}
+
+.map-pin::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+}
+
+/* 地図の上では背景に関わらず見分けやすいよう、ダークモードでも同じ色にする */
+.map-pin--stamped::after {
+  background: #c63d2a;
+}
+
+.map-pin--unstamped::after {
+  background: #2a2723;
+}
+
 /* ===== タブの画面（近く） ===== */
 .page {
   padding-top: 8px;

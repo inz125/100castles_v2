@@ -1,15 +1,20 @@
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
+import { castles } from '../domain/castles'
+import type { StampBook } from '../domain/stampBook'
 import { MapPage } from './MapPage'
 
-function renderPage() {
+function renderPage(book: StampBook = {}) {
   return render(
     <MemoryRouter initialEntries={['/map']}>
-      <MapPage />
+      <MapPage book={book} />
     </MemoryRouter>,
   )
 }
+
+const pins = () => [...document.querySelectorAll<HTMLElement>('.leaflet-marker-icon.map-pin')]
+const pinOf = (name: string) => pins().find((p) => p.title === name)!
 
 describe('MapPage：地図の表示', () => {
   it('見出しと地図の領域がある', () => {
@@ -43,5 +48,32 @@ describe('MapPage：地図の表示', () => {
     unmount()
     renderPage()
     expect(document.querySelectorAll('.leaflet-container')).toHaveLength(1)
+  })
+})
+
+describe('MapPage：城のピン', () => {
+  it('100 城すべてにピンを立てる（城名つき）', () => {
+    renderPage()
+    expect(pins()).toHaveLength(100)
+    expect(pins().map((p) => p.title)).toEqual(castles.map((c) => c.name))
+  })
+
+  it('押印済みは朱色、未押印は墨色のピン', () => {
+    renderPage({ 59: { stampedOn: '2026-09-30', memo: '' } })
+    expect(pinOf('姫路城')).toHaveClass('map-pin--stamped')
+    expect(pinOf('姫路城')).not.toHaveClass('map-pin--unstamped')
+    expect(pinOf('首里城')).toHaveClass('map-pin--unstamped')
+    expect(pins().filter((p) => p.classList.contains('map-pin--stamped'))).toHaveLength(1)
+  })
+
+  it('記録が変わるとピンの色も変わる', () => {
+    const { rerender } = renderPage()
+    rerender(
+      <MemoryRouter initialEntries={['/map']}>
+        <MapPage book={{ 59: { stampedOn: '2026-09-30', memo: '' } }} />
+      </MemoryRouter>,
+    )
+    expect(pins()).toHaveLength(100)
+    expect(pinOf('姫路城')).toHaveClass('map-pin--stamped')
   })
 })
