@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Route, Routes, useParams } from 'react-router'
+import { Link, Navigate, Route, Routes, useMatch, useParams } from 'react-router'
 import { castles } from './domain/castles'
 import { toLocalIsoDate } from './domain/dates'
 import { getRecord, type StampBook, type StampFilter } from './domain/stampBook'
@@ -19,6 +19,7 @@ import {
 } from './ui/filterPreference'
 import { MapPage } from './ui/MapPage'
 import { NearbyPage } from './ui/NearbyPage'
+import { SharePage } from './ui/SharePage'
 import { TabBar } from './ui/TabBar'
 
 type Props = {
@@ -48,6 +49,8 @@ function App({
   const [filter, changeFilter] = useSavedFilter(preferenceStorage, LIST_FILTER)
   const [nearbyFilter, changeNearbyFilter] = useSavedFilter(preferenceStorage, NEARBY_FILTER)
   const [saveFailed, setSaveFailed] = useState(false)
+  // 「共有」は一覧タブの見出しにだけ出す
+  const isListTab = useMatch('/') !== null
   // 共有中ならクラウドの記録帳、そうでなければ端末内の記録帳を使う
   const [repository] = useState(() => {
     const settings = loadShareSettings(preferenceStorage)
@@ -98,6 +101,11 @@ function App({
     <main className="app">
       <header className="app-header">
         <h1 className="app-title">100名城スタンプ帳</h1>
+        {isListTab && (
+          <Link to="/share" className="app-header__share">
+            共有
+          </Link>
+        )}
       </header>
       {state.status === 'loading' && <p className="empty">読み込み中…</p>}
       {state.status === 'error' && <LoadError error={state.error} />}
@@ -145,6 +153,7 @@ function App({
               />
             }
           />
+          <Route path="share" element={<SharePage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}

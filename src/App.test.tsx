@@ -182,6 +182,33 @@ describe('App', () => {
     })
   })
 
+  describe('共有画面', () => {
+    it('一覧の見出しの「共有」から共有画面を開き、「一覧に戻る」で一覧に戻る', async () => {
+      renderApp()
+      await screen.findByText('0/100')
+      await userEvent.click(screen.getByRole('link', { name: '共有' }))
+      expect(screen.getByRole('heading', { level: 2, name: '共有' })).toBeInTheDocument()
+      expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+
+      await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
+      expect(screen.getAllByRole('listitem')).toHaveLength(100)
+    })
+
+    it.each(['/nearby', '/map', '/castles/59'])(
+      '一覧以外（%s）には「共有」を出さない',
+      async (path) => {
+        renderApp(undefined, path)
+        await screen.findByRole('heading', { level: 2 })
+        expect(screen.queryByRole('link', { name: '共有' })).toBeNull()
+      },
+    )
+
+    it('URL（/share）で直接開ける', async () => {
+      renderApp(undefined, '/share')
+      expect(await screen.findByRole('heading', { level: 2, name: '共有' })).toBeInTheDocument()
+    })
+  })
+
   describe('地図タブ', () => {
     it('ピンの吹き出しの「詳細を見る」で詳細画面を開き、「地図に戻る」で地図に戻る', async () => {
       renderApp(undefined, '/map')

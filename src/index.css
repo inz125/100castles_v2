@@ -86,7 +86,24 @@ textarea {
     calc(var(--gutter) + env(safe-area-inset-left));
 }
 
+.app-header__share {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 4px;
+  color: var(--vermilion);
+  font-weight: 600;
+}
+
+.app-header__share:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
 .app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 20px 0 8px;
 }
 
