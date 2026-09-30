@@ -17,3 +17,12 @@ export function createEmptyRecord(): StampRecord {
 export function isStamped(record: StampRecord): boolean {
   return record.stampedOn !== null
 }
+
+/**
+ * 押印済みを切り替える。
+ * ON にすると押印日に today が入る（すでに押印済みなら元の押印日を残す）。OFF にすると押印日を消す。
+ */
+export function setStamped(record: StampRecord, stamped: boolean, today: IsoDate): StampRecord {
+  if (!stamped) return { ...record, stampedOn: null }
+  return { ...record, stampedOn: record.stampedOn ?? today }
+}
