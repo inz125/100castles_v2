@@ -8,6 +8,8 @@ const BACKGROUND = '#f4eee1'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // GitHub Pages では https://inz125.github.io/100castles_v2/ に置かれる
+  base: '/100castles_v2/',
   plugins: [
     react(),
     VitePWA({

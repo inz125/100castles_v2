@@ -49,5 +49,5 @@ UI 以外のロジック（ドメイン・Repository）を先に固め、UI は 
 ## フェーズ 6：PWA・公開
 
 - [x] 6-1. vite-plugin-pwa（manifest：name / short_name / アイコン、オフラインキャッシュ）
-- [ ] 6-2. GitHub Actions で GitHub Pages へデプロイ（テストが通った場合のみ）
+- [x] 6-2. GitHub Actions で GitHub Pages へデプロイ（テストが通った場合のみ）
 - [ ] 6-3. 実機（iPhone）でホーム画面追加・オフライン動作を確認
