@@ -7,17 +7,19 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  type DocumentReference,
   type Firestore,
   type QuerySnapshot,
 } from 'firebase/firestore'
 import type { ShareCode } from '../domain/shareCode'
 import type { StampBook } from '../domain/stampBook'
 import { isStampRecord, type StampRecord } from '../domain/stampRecord'
+import { UnsupportedVersionError } from '../repository/stampBookRepository'
 import {
-  UnsupportedVersionError,
-  type StampBookRepository,
-} from '../repository/stampBookRepository'
-import { BookAlreadyExistsError, type CloudBookStore } from './cloudBookStore'
+  BookAlreadyExistsError,
+  type CloudBookRepository,
+  type CloudBookStore,
+} from './cloudBookStore'
 
 /**
  * Firestore での置き場所：
@@ -52,13 +54,13 @@ export class FirestoreCloudBookStore implements CloudBookStore {
     return (await getDoc(doc(this.db, BOOKS, code))).exists()
   }
 
-  open(code: ShareCode): StampBookRepository {
+  open(code: ShareCode): CloudBookRepository {
     const bookRef = doc(this.db, BOOKS, code)
     const recordsRef = collection(bookRef, RECORDS)
     return {
       load: async () => {
-        const version: unknown = (await getDoc(bookRef)).get('version')
-        if (typeof version === 'number' && version > CURRENT_VERSION) {
+        const version = await readVersion(bookRef)
+        if (version !== null && version > CURRENT_VERSION) {
           throw new UnsupportedVersionError(version)
         }
         return toBook(await getDocs(recordsRef))
@@ -75,7 +77,27 @@ export class FirestoreCloudBookStore implements CloudBookStore {
           (snapshot) => listener(toBook(snapshot)),
           (error) => console.error('共有の記録帳の変更を受け取れませんでした', error),
         ),
+      subscribePendingWrites: (listener) =>
+        onSnapshot(
+          recordsRef,
+          { includeMetadataChanges: true },
+          (snapshot) => listener(snapshot.metadata.hasPendingWrites),
+          (error) => console.error('送信待ちの状態を受け取れませんでした', error),
+        ),
     }
+  }
+}
+
+/**
+ * 記録帳のバージョン。電波がなく端末内にもまだ無いときは確かめられないので null
+ * （記録の読み書きは続けられるようにする）
+ */
+async function readVersion(bookRef: DocumentReference): Promise<number | null> {
+  try {
+    const version: unknown = (await getDoc(bookRef)).get('version')
+    return typeof version === 'number' ? version : null
+  } catch {
+    return null
   }
 }
 

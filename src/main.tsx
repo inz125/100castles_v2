@@ -5,8 +5,10 @@ import './index.css'
 import App from './App.tsx'
 import { createGeolocationProvider } from './location/locationProvider'
 import { LocalStorageStampBookRepository } from './repository/localStorageStampBookRepository'
+import { createFirestoreCloudBookStore } from './sharing/firebase'
 
 const repository = new LocalStorageStampBookRepository(localStorage)
+const cloud = createFirestoreCloudBookStore()
 // Geolocation に対応していないブラウザでは undefined になる
 const locationProvider = createGeolocationProvider(navigator.geolocation as Geolocation | undefined)
 
@@ -16,6 +18,7 @@ createRoot(document.getElementById('root')!).render(
     <HashRouter>
       <App
         localRepository={repository}
+        cloud={cloud}
         preferenceStorage={localStorage}
         locationProvider={locationProvider}
       />

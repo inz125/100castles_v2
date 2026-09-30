@@ -1,6 +1,13 @@
 import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing'
 import { initializeApp } from 'firebase/app'
-import { connectFirestoreEmulator, doc, getFirestore, setDoc } from 'firebase/firestore'
+import {
+  connectFirestoreEmulator,
+  disableNetwork,
+  doc,
+  enableNetwork,
+  getFirestore,
+  setDoc,
+} from 'firebase/firestore'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { generateShareCode } from '../domain/shareCode'
 import type { StampBook } from '../domain/stampBook'
@@ -62,6 +69,31 @@ describe('FirestoreCloudBookStore：2 台の端末', () => {
     await vi.waitFor(() =>
       expect(listener).toHaveBeenLastCalledWith({ 59: { stampedOn: '2026-09-30', memo: '' } }),
     )
+  })
+})
+
+describe('FirestoreCloudBookStore：電波がないとき', () => {
+  it('つながっていない間の変更は送信待ちになり、つながると送られる', async () => {
+    const code = generateShareCode()
+    const db = connectDevice()
+    const store = new FirestoreCloudBookStore(db)
+    await store.create(code, {})
+    const book = store.open(code)
+    const pending = vi.fn<(pending: boolean) => void>()
+    book.subscribePendingWrites(pending)
+    await vi.waitFor(() => expect(pending).toHaveBeenLastCalledWith(false))
+
+    await disableNetwork(db)
+    await book.saveRecord(59, { stampedOn: '2026-09-30', memo: '' })
+    await vi.waitFor(() => expect(pending).toHaveBeenLastCalledWith(true))
+    // つながっていなくても、端末内では保存した記録が読める
+    expect(await book.load()).toEqual({ 59: { stampedOn: '2026-09-30', memo: '' } })
+
+    await enableNetwork(db)
+    await vi.waitFor(() => expect(pending).toHaveBeenLastCalledWith(false))
+    expect(await new FirestoreCloudBookStore(connectDevice()).open(code).load()).toEqual({
+      59: { stampedOn: '2026-09-30', memo: '' },
+    })
   })
 })
 

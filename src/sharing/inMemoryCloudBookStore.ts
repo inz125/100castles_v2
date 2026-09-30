@@ -2,13 +2,18 @@ import type { ShareCode } from '../domain/shareCode'
 import type { StampBook } from '../domain/stampBook'
 import type { StampRecord } from '../domain/stampRecord'
 import { BookListeners } from '../repository/bookListeners'
-import type { StampBookRepository } from '../repository/stampBookRepository'
-import { BookAlreadyExistsError, type CloudBookStore } from './cloudBookStore'
+import {
+  BookAlreadyExistsError,
+  type CloudBookRepository,
+  type CloudBookStore,
+} from './cloudBookStore'
 
 type SharedBook = {
   records: Record<number, StampRecord>
   /** この記録帳を開いているすべての端末 */
   listeners: BookListeners
+  pendingWrites: boolean
+  pendingListeners: Set<(pending: boolean) => void>
 }
 
 /** メモリ上のクラウド（テスト用）。同じコードで開いた記録帳どうしは中身を共有する */
@@ -28,7 +33,14 @@ export class InMemoryCloudBookStore implements CloudBookStore {
     return this.created.has(code)
   }
 
-  open(code: ShareCode): StampBookRepository {
+  /** 送信待ちの状態を変える（テスト用。メモリ上では保存がすぐ届くので、送信待ちを再現するときに使う） */
+  setPendingWrites(code: ShareCode, pending: boolean): void {
+    const shared = this.bookOf(code)
+    shared.pendingWrites = pending
+    for (const listener of shared.pendingListeners) listener(pending)
+  }
+
+  open(code: ShareCode): CloudBookRepository {
     const shared = this.bookOf(code)
     return {
       load: async () => structuredClone(shared.records),
@@ -37,13 +49,25 @@ export class InMemoryCloudBookStore implements CloudBookStore {
         shared.listeners.notify(shared.records)
       },
       subscribe: (listener) => shared.listeners.add(listener),
+      subscribePendingWrites: (listener) => {
+        shared.pendingListeners.add(listener)
+        listener(shared.pendingWrites)
+        return () => {
+          shared.pendingListeners.delete(listener)
+        }
+      },
     }
   }
 
   private bookOf(code: ShareCode): SharedBook {
     let shared = this.books.get(code)
     if (!shared) {
-      shared = { records: {}, listeners: new BookListeners() }
+      shared = {
+        records: {},
+        listeners: new BookListeners(),
+        pendingWrites: false,
+        pendingListeners: new Set(),
+      }
       this.books.set(code, shared)
     }
     return shared

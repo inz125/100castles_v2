@@ -2,11 +2,15 @@ import { useId, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { formatShareCode, type ShareCode } from '../domain/shareCode'
 import type { JoinResult } from '../sharing/joinSharing'
+import type { SyncStatus } from '../sharing/syncStatus'
 import { BackLink } from './castleLinks'
+import { SyncStatusText } from './SyncStatusText'
 
 type Props = {
   /** 共有中なら共有コード、共有していなければ null */
   shareCode: ShareCode | null
+  /** 共有中の同期の状態 */
+  syncStatus: SyncStatus | null
   /** 共有を始める（失敗したら例外） */
   onStartSharing: () => Promise<ShareCode>
   /** 共有に参加する（クラウドに問い合わせられなければ例外） */
@@ -14,13 +18,13 @@ type Props = {
 }
 
 /** 共有画面：共有していなければ始める・参加する、共有中なら共有コードを伝える */
-export function SharePage({ shareCode, onStartSharing, onJoinSharing }: Props) {
+export function SharePage({ shareCode, syncStatus, onStartSharing, onJoinSharing }: Props) {
   return (
     <section className="page share-page">
       <BackLink />
       <h2 className="page__title">共有</h2>
       {shareCode ? (
-        <SharingView code={shareCode} />
+        <SharingView code={shareCode} syncStatus={syncStatus} />
       ) : (
         <>
           <StartSharingForm onStartSharing={onStartSharing} />
@@ -130,7 +134,7 @@ function StartSharingForm({ onStartSharing }: Pick<Props, 'onStartSharing'>) {
   )
 }
 
-function SharingView({ code }: { code: ShareCode }) {
+function SharingView({ code, syncStatus }: { code: ShareCode; syncStatus: SyncStatus | null }) {
   const formatted = formatShareCode(code)
   const [copied, setCopied] = useState(false)
   const canShare = typeof navigator.share === 'function'
@@ -152,6 +156,12 @@ function SharingView({ code }: { code: ShareCode }) {
     <div className="card share-card">
       <h3 className="share-card__title">共有コード</h3>
       <p className="share-code">{formatted}</p>
+      {syncStatus && (
+        <p className="share-card__sync">
+          同期の状態：
+          <SyncStatusText status={syncStatus} />
+        </p>
+      )}
       <div className="share-card__actions">
         <button type="button" className="button button--secondary" onClick={copy}>
           コピー

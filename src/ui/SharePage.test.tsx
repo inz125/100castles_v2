@@ -24,6 +24,7 @@ function renderPage({
     <MemoryRouter initialEntries={['/share']}>
       <SharePage
         shareCode={shareCode}
+        syncStatus={shareCode ? 'synced' : null}
         onStartSharing={onStartSharing}
         onJoinSharing={onJoinSharing}
       />
@@ -54,6 +55,7 @@ describe('SharePage：共有を始める', () => {
       <MemoryRouter initialEntries={['/share']}>
         <SharePage
           shareCode={CODE}
+          syncStatus="synced"
           onStartSharing={onStartSharing}
           onJoinSharing={vi.fn<(input: string) => Promise<JoinResult>>()}
         />
@@ -96,7 +98,7 @@ describe('SharePage：共有中', () => {
     renderPage({ shareCode: CODE })
     await user.click(screen.getByRole('button', { name: 'コピー' }))
     expect(await navigator.clipboard.readText()).toBe('ABCD-2345-EFGH')
-    expect(screen.getByRole('status')).toHaveTextContent('コピーしました')
+    expect(screen.getByText('コピーしました')).toHaveAttribute('role', 'status')
   })
 
   it('共有シートが使えれば「送る」で共有コードを送れる', async () => {
@@ -129,6 +131,7 @@ describe('SharePage：共有に参加する', () => {
             element={
               <SharePage
                 shareCode={null}
+                syncStatus={null}
                 onStartSharing={vi.fn<() => Promise<ShareCode>>()}
                 onJoinSharing={onJoinSharing}
               />

@@ -86,6 +86,31 @@ textarea {
     calc(var(--gutter) + env(safe-area-inset-left));
 }
 
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 同期の状態：同期済みは控えめに、送信待ち・オフラインは目に留まる色にする */
+.sync-status {
+  font-size: 12px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.sync-status--pending,
+.sync-status--offline {
+  color: var(--vermilion);
+  font-weight: 600;
+}
+
+.share-card__sync {
+  color: var(--ink-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
 .app-header__share {
   display: inline-flex;
   align-items: center;

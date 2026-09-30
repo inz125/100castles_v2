@@ -1,7 +1,7 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, type InitialEntry } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { formatShareCode, type ShareCode } from './domain/shareCode'
 import type { LocationProvider } from './location/locationProvider'
@@ -84,6 +84,49 @@ describe('App：共有中', () => {
       }),
     )
     expect(await local.load()).toEqual({})
+  })
+
+  describe('同期の状態', () => {
+    const syncStatus = () => screen.getByRole('status', { name: '同期の状態' })
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('一覧の見出しに同期の状態を表示し、送信待ち・オフラインに切り替わる', async () => {
+      const cloud = await sharedCloud()
+      renderApp(undefined, '/', pendingLocation, cloud)
+      await screen.findByText('1/100')
+      expect(syncStatus()).toHaveTextContent('同期済み')
+
+      act(() => cloud.setPendingWrites(CODE, true))
+      expect(syncStatus()).toHaveTextContent('送信待ち')
+
+      const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false)
+      act(() => {
+        window.dispatchEvent(new Event('offline'))
+      })
+      expect(syncStatus()).toHaveTextContent('オフライン')
+
+      onLine.mockReturnValue(true)
+      act(() => {
+        window.dispatchEvent(new Event('online'))
+        cloud.setPendingWrites(CODE, false)
+      })
+      expect(syncStatus()).toHaveTextContent('同期済み')
+    })
+
+    it('共有画面にも同期の状態を表示する', async () => {
+      renderApp(undefined, '/share', pendingLocation, await sharedCloud())
+      expect(await screen.findByText('ABCD-2345-EFGH')).toBeInTheDocument()
+      expect(syncStatus()).toHaveTextContent('同期済み')
+    })
+
+    it('共有していなければ表示しない', async () => {
+      renderApp()
+      await screen.findByText('0/100')
+      expect(screen.queryByRole('status', { name: '同期の状態' })).toBeNull()
+    })
   })
 
   it('もう 1 人の変更が、開き直さなくても画面に反映される', async () => {

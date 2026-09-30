@@ -59,6 +59,18 @@ export function describeCloudBookStoreContract(name: string, createStore: () => 
       expect(await mine.load()).toEqual({ 59: { stampedOn: '2026-09-30', memo: '' } })
     })
 
+    it('保存した変更がクラウドに届くと、送信待ちはなくなる', async () => {
+      const store = createStore()
+      const code = generateShareCode()
+      await store.create(code, {})
+      const book = store.open(code)
+      const listener = vi.fn<(pending: boolean) => void>()
+      book.subscribePendingWrites(listener)
+
+      await book.saveRecord(59, { stampedOn: '2026-09-30', memo: '' })
+      await vi.waitFor(() => expect(listener).toHaveBeenLastCalledWith(false))
+    })
+
     // 開いた記録帳は、端末内の記録帳と同じ契約を満たす（テストごとに新しいコードで開く）
     const store = createStore()
     describeStampBookRepositoryContract(`${name} で開いた記録帳`, () =>

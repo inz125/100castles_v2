@@ -11,6 +11,7 @@ import type { CloudBookStore } from './sharing/cloudBookStore'
 import { joinSharing } from './sharing/joinSharing'
 import { loadShareSettings } from './sharing/shareSettings'
 import { startSharing } from './sharing/startSharing'
+import { syncStatusOf } from './sharing/syncStatus'
 import { CastleDetailPage, CastleNotFound } from './ui/CastleDetailPage'
 import { CastleListPage } from './ui/CastleListPage'
 import {
@@ -23,7 +24,9 @@ import {
 import { MapPage } from './ui/MapPage'
 import { NearbyPage } from './ui/NearbyPage'
 import { SharePage } from './ui/SharePage'
+import { SyncStatusText } from './ui/SyncStatusText'
 import { TabBar } from './ui/TabBar'
+import { useOnline } from './ui/useOnline'
 
 type Props = {
   /** 共有していないときに使う端末内の記録帳 */
@@ -59,10 +62,16 @@ function App({
     cloud ? (loadShareSettings(preferenceStorage)?.code ?? null) : null,
   )
   // 共有中ならクラウドの記録帳、そうでなければ端末内の記録帳を使う
-  const repository = useMemo(
-    () => (shareCode && cloud ? cloud.open(shareCode) : localRepository),
-    [shareCode, cloud, localRepository],
+  const cloudRepository = useMemo(
+    () => (shareCode && cloud ? cloud.open(shareCode) : null),
+    [shareCode, cloud],
   )
+  const repository = cloudRepository ?? localRepository
+  // 共有中の同期の状態（共有していなければ null）
+  const online = useOnline()
+  const [pendingWrites, setPendingWrites] = useState(false)
+  useEffect(() => cloudRepository?.subscribePendingWrites(setPendingWrites), [cloudRepository])
+  const syncStatus = cloudRepository ? syncStatusOf({ online, pendingWrites }) : null
 
   /** 共有を始め、以降はクラウドの記録帳を使う */
   const startSharingHere = async () => {
@@ -125,9 +134,12 @@ function App({
       <header className="app-header">
         <h1 className="app-title">100名城スタンプ帳</h1>
         {isListTab && (
-          <Link to="/share" className="app-header__share">
-            共有
-          </Link>
+          <div className="app-header__actions">
+            {syncStatus && <SyncStatusText status={syncStatus} className="app-header__sync" />}
+            <Link to="/share" className="app-header__share">
+              共有
+            </Link>
+          </div>
         )}
       </header>
       {state.status === 'loading' && <p className="empty">読み込み中…</p>}
@@ -181,6 +193,7 @@ function App({
             element={
               <SharePage
                 shareCode={shareCode}
+                syncStatus={syncStatus}
                 onStartSharing={startSharingHere}
                 onJoinSharing={joinSharingHere}
               />
