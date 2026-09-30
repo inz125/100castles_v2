@@ -104,6 +104,8 @@ function CastleDetailRoute({ book, today, onChange }: CastleDetailRouteProps) {
   if (!castle) return <CastleNotFound />
   return (
     <CastleDetailPage
+      // 城が変わったらメモの下書きなどの状態を作り直す
+      key={castle.number}
       castle={castle}
       record={getRecord(book, castle.number)}
       today={today}

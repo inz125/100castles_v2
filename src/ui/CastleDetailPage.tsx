@@ -1,8 +1,9 @@
-import { useId } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import type { Castle } from '../domain/castles'
 import {
   isStamped,
+  setMemo,
   setStamped,
   setStampedDate,
   type IsoDate,
@@ -49,7 +50,69 @@ export function CastleDetailPage({ castle, record, today, onChange }: Props) {
           />
         </div>
       )}
+      <MemoField record={record} onChange={onChange} />
     </article>
+  )
+}
+
+/** 入力が止まってから保存するまでの時間 */
+const MEMO_SAVE_DELAY_MS = 1000
+
+/**
+ * メモの入力欄。入力中は下書きとして持ち、次のときに保存する：
+ * 入力が 1 秒止まったとき・入力欄から離れたとき・アプリが隠れたとき・画面を離れるとき。
+ */
+function MemoField({
+  record,
+  onChange,
+}: {
+  record: StampRecord
+  onChange: (record: StampRecord) => void
+}) {
+  const id = useId()
+  const [draft, setDraft] = useState(record.memo)
+  const savedMemo = useRef(record.memo)
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // タイマーやイベントから呼ばれたときにも最新の値で保存するため、ref に持っておく
+  const latest = useRef({ record, onChange, draft })
+  useLayoutEffect(() => {
+    latest.current = { record, onChange, draft }
+  })
+
+  const flush = useCallback(() => {
+    clearTimeout(timer.current)
+    timer.current = undefined
+    const { record, onChange, draft } = latest.current
+    if (draft === savedMemo.current) return
+    savedMemo.current = draft
+    onChange(setMemo(record, draft))
+  }, [])
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      flush()
+    }
+  }, [flush])
+
+  return (
+    <div>
+      <label htmlFor={id}>メモ</label>
+      <textarea
+        id={id}
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value)
+          clearTimeout(timer.current)
+          timer.current = setTimeout(flush, MEMO_SAVE_DELAY_MS)
+        }}
+        onBlur={flush}
+      />
+    </div>
   )
 }
 

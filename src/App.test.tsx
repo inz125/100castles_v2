@@ -196,4 +196,30 @@ describe('App', () => {
       expect(await repository.load()).toEqual({ 59: { stampedOn: '2026-09-01', memo: '' } })
     })
   })
+
+  describe('詳細画面でメモを書く', () => {
+    it('書いたメモは一覧に戻ると保存されていて、開き直すと表示される', async () => {
+      const repository = new InMemoryStampBookRepository()
+      renderApp(repository, '/castles/59')
+      await userEvent.type(await screen.findByRole('textbox', { name: 'メモ' }), '白鷺城')
+      await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
+
+      await waitFor(async () =>
+        expect(await repository.load()).toEqual({ 59: { stampedOn: null, memo: '白鷺城' } }),
+      )
+      await userEvent.click(screen.getByRole('link', { name: /姫路城/ }))
+      expect(screen.getByRole('textbox', { name: 'メモ' })).toHaveValue('白鷺城')
+    })
+
+    it('別の城を開くとその城のメモを表示する', async () => {
+      const repository = new InMemoryStampBookRepository()
+      await repository.saveRecord(59, { stampedOn: null, memo: '姫路のメモ' })
+      renderApp(repository, '/castles/59')
+      expect(await screen.findByRole('textbox', { name: 'メモ' })).toHaveValue('姫路のメモ')
+
+      await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
+      await userEvent.click(screen.getByRole('link', { name: /首里城/ }))
+      expect(screen.getByRole('textbox', { name: 'メモ' })).toHaveValue('')
+    })
+  })
 })
