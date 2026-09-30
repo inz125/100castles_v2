@@ -157,7 +157,35 @@ textarea {
   outline-offset: -4px;
 }
 
-/* ===== タブの画面（近く・地図） ===== */
+/* 画面には出さず、読み上げには使う */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ===== 地図タブ（画面上端からタブバーまで地図を敷き詰める） ===== */
+.map-page {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  right: 0;
+  bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 1;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  font-family: var(--font-gothic);
+}
+
+/* ===== タブの画面（近く） ===== */
 .page {
   padding-top: 8px;
 }
