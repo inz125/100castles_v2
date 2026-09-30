@@ -21,7 +21,7 @@ UI 以外のロジック（ドメイン・Repository）を先に固め、UI は 
 
 ## フェーズ 2：保存（Repository）
 
-- [ ] 2-1. `RecordRepository` インターフェース定義＋テスト用 InMemory 実装
+- [x] 2-1. `StampBookRepository` インターフェース定義＋テスト用 InMemory 実装（共通の契約テスト付き）
 - [ ] 2-2. localStorage 実装（保存・読み込み・未保存時は空・壊れたデータへの耐性）
 - [ ] 2-3. データのスキーマバージョンを持たせる（将来のマイグレーション用）
 
