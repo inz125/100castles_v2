@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
+import { Navigate, Route, Routes, useParams } from 'react-router'
+import { castles } from './domain/castles'
 import type { StampBook, StampFilter } from './domain/stampBook'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
+import { CastleDetailPage, CastleNotFound } from './ui/CastleDetailPage'
 import { CastleListPage } from './ui/CastleListPage'
 import { loadStampFilter, saveStampFilter } from './ui/filterPreference'
 
@@ -39,10 +42,25 @@ function App({ repository, preferenceStorage }: Props) {
       {state.status === 'loading' && <p>読み込み中…</p>}
       {state.status === 'error' && <LoadError error={state.error} />}
       {state.status === 'ready' && (
-        <CastleListPage book={state.book} filter={filter} onFilterChange={changeFilter} />
+        <Routes>
+          <Route
+            index
+            element={
+              <CastleListPage book={state.book} filter={filter} onFilterChange={changeFilter} />
+            }
+          />
+          <Route path="castles/:number" element={<CastleDetailRoute />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       )}
     </main>
   )
+}
+
+function CastleDetailRoute() {
+  const { number } = useParams()
+  const castle = castles.find((c) => String(c.number) === number)
+  return castle ? <CastleDetailPage castle={castle} /> : <CastleNotFound />
 }
 
 function LoadError({ error }: { error: unknown }) {

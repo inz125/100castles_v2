@@ -35,7 +35,7 @@ UI 以外のロジック（ドメイン・Repository）を先に固め、UI は 
 
 ## フェーズ 4：詳細画面
 
-- [ ] 4-1. ルーティング（一覧 → 詳細 → 戻る）※ GitHub Pages 向けに HashRouter
+- [x] 4-1. ルーティング（一覧 → 詳細 → 戻る）※ GitHub Pages 向けに HashRouter（React Router）
 - [ ] 4-2. 押印済みの切り替えで即保存、日付が自動で入る / 消える
 - [ ] 4-3. 押印日の変更で即保存
 - [ ] 4-4. メモの自動保存（debounce / blur）

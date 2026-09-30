@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { REGIONS } from '../domain/castles'
 import type { StampBook, StampFilter } from '../domain/stampBook'
@@ -10,11 +11,20 @@ function renderPage(
   filter: StampFilter = 'all',
   onFilterChange = vi.fn<(filter: StampFilter) => void>(),
 ) {
-  render(<CastleListPage book={book} filter={filter} onFilterChange={onFilterChange} />)
+  render(
+    <MemoryRouter>
+      <CastleListPage book={book} filter={filter} onFilterChange={onFilterChange} />
+    </MemoryRouter>,
+  )
   return { onFilterChange }
 }
 
 describe('CastleListPage', () => {
+  it('各城は詳細画面へのリンクになっている', () => {
+    renderPage({})
+    expect(screen.getByRole('link', { name: /姫路城/ })).toHaveAttribute('href', '/castles/59')
+  })
+
   it('6 地方の見出しをスタンプ帳の順に表示する', () => {
     renderPage({})
     const headings = screen.getAllByRole('heading', { level: 2 })

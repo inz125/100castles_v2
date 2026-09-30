@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { Link } from 'react-router'
 import { castles } from '../domain/castles'
 import { isStamped } from '../domain/stampRecord'
 import {
@@ -64,8 +65,11 @@ function RegionSection({ group, book }: { group: RegionGroup; book: StampBook })
       <ul>
         {group.castles.map((castle) => (
           <li key={castle.number}>
-            <span>{castle.number}</span> <span>{castle.name}</span> <span>{castle.prefecture}</span>
-            {isStamped(getRecord(book, castle.number)) && <StampMark />}
+            <Link to={`/castles/${castle.number}`}>
+              <span>{castle.number}</span> <span>{castle.name}</span>{' '}
+              <span>{castle.prefecture}</span>
+              {isStamped(getRecord(book, castle.number)) && <StampMark />}
+            </Link>
           </li>
         ))}
       </ul>

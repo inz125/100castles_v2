@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
 import { InMemoryStampBookRepository } from './repository/inMemoryStampBookRepository'
@@ -13,8 +14,15 @@ function failingRepository(error: unknown): StampBookRepository {
   }
 }
 
-function renderApp(repository: StampBookRepository = new InMemoryStampBookRepository()) {
-  render(<App repository={repository} preferenceStorage={localStorage} />)
+function renderApp(
+  repository: StampBookRepository = new InMemoryStampBookRepository(),
+  initialPath = '/',
+) {
+  render(
+    <MemoryRouter initialEntries={[initialPath]}>
+      <App repository={repository} preferenceStorage={localStorage} />
+    </MemoryRouter>,
+  )
 }
 
 beforeEach(() => {
@@ -67,5 +75,35 @@ describe('App', () => {
       expect(screen.getByText('該当する城はありません')).toBeInTheDocument()
       expect(localStorage.getItem(FILTER_STORAGE_KEY)).toBe('stamped')
     })
+  })
+
+  describe('画面の切り替え', () => {
+    it('一覧で城を選ぶと詳細画面に移る', async () => {
+      renderApp()
+      await userEvent.click(await screen.findByRole('link', { name: /姫路城/ }))
+      expect(screen.getByRole('heading', { level: 2, name: '姫路城' })).toBeInTheDocument()
+      expect(screen.getByText('兵庫県')).toBeInTheDocument()
+      expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+    })
+
+    it('詳細画面から一覧に戻れる', async () => {
+      renderApp(undefined, '/castles/59')
+      await userEvent.click(await screen.findByRole('link', { name: '一覧に戻る' }))
+      expect(screen.getAllByRole('listitem')).toHaveLength(100)
+    })
+
+    it('URL で直接詳細画面を開ける', async () => {
+      renderApp(undefined, '/castles/100')
+      expect(await screen.findByRole('heading', { level: 2, name: '首里城' })).toBeInTheDocument()
+    })
+
+    it.each(['/castles/0', '/castles/101', '/castles/abc'])(
+      '存在しない城（%s）なら見つからない旨を表示する',
+      async (path) => {
+        renderApp(undefined, path)
+        expect(await screen.findByText('城が見つかりません')).toBeInTheDocument()
+        expect(screen.getByRole('link', { name: '一覧に戻る' })).toBeInTheDocument()
+      },
+    )
   })
 })
