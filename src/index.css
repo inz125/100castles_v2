@@ -168,6 +168,15 @@ textarea {
   font-weight: 600;
 }
 
+.list-toolbar > .page__title {
+  margin-bottom: 10px;
+}
+
+/* .castle-list の margin: 0 より後で効かせるため詳細度を上げる */
+.castle-list.nearby-list {
+  margin-top: 16px;
+}
+
 /* ===== 一覧：上部（進捗と絞り込み） ===== */
 .list-toolbar {
   position: sticky;
@@ -299,6 +308,13 @@ textarea {
 .castle-row__prefecture {
   color: var(--ink-muted);
   font-size: 13px;
+  white-space: nowrap;
+}
+
+.castle-row__distance {
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 

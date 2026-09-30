@@ -12,6 +12,7 @@ import {
   type StampFilter,
 } from '../domain/stampBook'
 import { CastleLink } from './castleLinks'
+import { FilterControl } from './FilterControl'
 import { StampMark } from './StampMark'
 
 type Props = {
@@ -19,12 +20,6 @@ type Props = {
   filter: StampFilter
   onFilterChange: (filter: StampFilter) => void
 }
-
-const FILTER_OPTIONS: readonly { value: StampFilter; label: string }[] = [
-  { value: 'all', label: 'すべて' },
-  { value: 'unstamped', label: '未押印' },
-  { value: 'stamped', label: '押印済み' },
-]
 
 export function CastleListPage({ book, filter, onFilterChange }: Props) {
   const groups = filterGroups(groupByRegion(castles, book), book, filter)
@@ -45,19 +40,7 @@ export function CastleListPage({ book, filter, onFilterChange }: Props) {
             />
           </div>
         </div>
-        <div role="group" aria-label="絞り込み" className="segmented">
-          {FILTER_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className="segmented__button"
-              aria-pressed={option.value === filter}
-              onClick={() => onFilterChange(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <FilterControl filter={filter} onFilterChange={onFilterChange} />
       </div>
       {groups.length === 0 && <p className="empty">該当する城はありません</p>}
       {groups.map((group) => (

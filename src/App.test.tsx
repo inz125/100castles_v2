@@ -6,7 +6,7 @@ import App from './App'
 import type { LocationProvider } from './location/locationProvider'
 import { InMemoryStampBookRepository } from './repository/inMemoryStampBookRepository'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
-import { FILTER_STORAGE_KEY } from './ui/filterPreference'
+import { LIST_FILTER, NEARBY_FILTER } from './ui/filterPreference'
 
 function failingRepository(error: unknown): StampBookRepository {
   return {
@@ -24,13 +24,14 @@ const NOW = new Date(2026, 8, 30, 0, 30)
 function renderApp(
   repository: StampBookRepository = new InMemoryStampBookRepository(),
   initialPath: InitialEntry = '/',
+  locationProvider: LocationProvider = pendingLocation,
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
       <App
         repository={repository}
         preferenceStorage={localStorage}
-        locationProvider={pendingLocation}
+        locationProvider={locationProvider}
         now={() => NOW}
       />
     </MemoryRouter>,
@@ -76,7 +77,7 @@ describe('App', () => {
 
   describe('絞り込み', () => {
     it('前回選んだ絞り込みで表示する', async () => {
-      localStorage.setItem(FILTER_STORAGE_KEY, 'stamped')
+      localStorage.setItem(LIST_FILTER.key, 'stamped')
       renderApp()
       expect(await screen.findByText('該当する城はありません')).toBeInTheDocument()
     })
@@ -85,7 +86,40 @@ describe('App', () => {
       renderApp()
       await userEvent.click(await screen.findByRole('button', { name: '押印済み' }))
       expect(screen.getByText('該当する城はありません')).toBeInTheDocument()
-      expect(localStorage.getItem(FILTER_STORAGE_KEY)).toBe('stamped')
+      expect(localStorage.getItem(LIST_FILTER.key)).toBe('stamped')
+    })
+  })
+
+  describe('近くタブ', () => {
+    // 松本駅付近
+    const nearMatsumoto: LocationProvider = {
+      getCurrentPosition: async () => ({
+        status: 'ok',
+        position: { latitude: 36.2308, longitude: 137.9642 },
+      }),
+    }
+
+    it('絞り込みは一覧とは別に覚え、初期値は未押印', async () => {
+      localStorage.setItem(LIST_FILTER.key, 'stamped')
+      renderApp(undefined, '/nearby', nearMatsumoto)
+      expect(await screen.findByRole('button', { name: '未押印' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      )
+
+      await userEvent.click(screen.getByRole('button', { name: 'すべて' }))
+      expect(localStorage.getItem(NEARBY_FILTER.key)).toBe('all')
+      expect(localStorage.getItem(LIST_FILTER.key)).toBe('stamped')
+    })
+
+    it('近くの一覧から開いた詳細画面は「近くに戻る」で近くの一覧に戻る', async () => {
+      renderApp(undefined, '/nearby', nearMatsumoto)
+      await userEvent.click(await screen.findByRole('link', { name: /松本城/ }))
+      expect(screen.getByRole('heading', { level: 2, name: '松本城' })).toBeInTheDocument()
+
+      await userEvent.click(screen.getByRole('link', { name: '近くに戻る' }))
+      expect(await screen.findByRole('link', { name: /松本城/ })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { level: 2, name: '近くの城' })).toBeInTheDocument()
     })
   })
 

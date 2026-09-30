@@ -8,7 +8,13 @@ import type { LocationProvider } from './location/locationProvider'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
 import { CastleDetailPage, CastleNotFound } from './ui/CastleDetailPage'
 import { CastleListPage } from './ui/CastleListPage'
-import { loadStampFilter, saveStampFilter } from './ui/filterPreference'
+import {
+  LIST_FILTER,
+  loadStampFilter,
+  NEARBY_FILTER,
+  saveStampFilter,
+  type FilterPreference,
+} from './ui/filterPreference'
 import { MapPage } from './ui/MapPage'
 import { NearbyPage } from './ui/NearbyPage'
 import { TabBar } from './ui/TabBar'
@@ -28,7 +34,8 @@ type LoadState =
 
 function App({ repository, preferenceStorage, locationProvider, now = () => new Date() }: Props) {
   const [state, setState] = useState<LoadState>({ status: 'loading' })
-  const [filter, setFilter] = useState<StampFilter>(() => loadStampFilter(preferenceStorage))
+  const [filter, changeFilter] = useSavedFilter(preferenceStorage, LIST_FILTER)
+  const [nearbyFilter, changeNearbyFilter] = useSavedFilter(preferenceStorage, NEARBY_FILTER)
   const [saveFailed, setSaveFailed] = useState(false)
 
   useEffect(() => {
@@ -41,11 +48,6 @@ function App({ repository, preferenceStorage, locationProvider, now = () => new 
       cancelled = true
     }
   }, [repository])
-
-  const changeFilter = (next: StampFilter) => {
-    setFilter(next)
-    saveStampFilter(preferenceStorage, next)
-  }
 
   const replaceRecord = (castleNumber: number, record: StampRecord) => {
     setState((s) =>
@@ -87,7 +89,17 @@ function App({ repository, preferenceStorage, locationProvider, now = () => new 
               <CastleListPage book={state.book} filter={filter} onFilterChange={changeFilter} />
             }
           />
-          <Route path="nearby" element={<NearbyPage locationProvider={locationProvider} />} />
+          <Route
+            path="nearby"
+            element={
+              <NearbyPage
+                locationProvider={locationProvider}
+                book={state.book}
+                filter={nearbyFilter}
+                onFilterChange={changeNearbyFilter}
+              />
+            }
+          />
           <Route path="map" element={<MapPage />} />
           <Route
             path="castles/:number"
@@ -105,6 +117,16 @@ function App({ repository, preferenceStorage, locationProvider, now = () => new 
       <TabBar />
     </main>
   )
+}
+
+/** 絞り込みの選択。変えるたびに保存し、次回も使う */
+function useSavedFilter(storage: Storage, preference: FilterPreference) {
+  const [filter, setFilter] = useState<StampFilter>(() => loadStampFilter(storage, preference))
+  const changeFilter = (next: StampFilter) => {
+    setFilter(next)
+    saveStampFilter(storage, preference, next)
+  }
+  return [filter, changeFilter] as const
 }
 
 type CastleDetailRouteProps = {
