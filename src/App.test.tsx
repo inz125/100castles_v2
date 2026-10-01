@@ -472,6 +472,16 @@ describe('App', () => {
         expect(await screen.findByRole('status')).toHaveTextContent('近畿制覇')
       })
 
+      it('100 城が揃ったら、地方ではなく「日本100名城 制覇」を表示する', async () => {
+        const repository = new InMemoryStampBookRepository()
+        for (let n = 1; n <= 100; n++) {
+          if (n !== 59) await repository.saveRecord(n, { stampedOn: '2026-01-01', memo: '' })
+        }
+        renderApp(repository, '/castles/59')
+        await userEvent.click(await stampedCheckbox())
+        expect(await screen.findByRole('status')).toHaveTextContent('日本100名城制覇')
+      })
+
       it('まだ揃っていなければ表示しない', async () => {
         renderApp(undefined, '/castles/59')
         await userEvent.click(await stampedCheckbox())

@@ -1029,3 +1029,60 @@ textarea {
     opacity: 0;
   }
 }
+
+/* 100 城：大きな印を残し、桜を舞わせる */
+.celebration--all {
+  align-content: center;
+  gap: 24px;
+  background: rgb(from var(--bg) r g b / 0.86);
+  animation: none;
+}
+
+.celebration--all .celebration__seal {
+  position: relative;
+  border-width: 8px;
+  animation-duration: 0.6s;
+}
+
+.celebration--all .celebration__name {
+  font-size: 30px;
+}
+
+.celebration--all .celebration__title {
+  font-size: 84px;
+}
+
+.celebration__hint {
+  position: relative;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.petals {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.petal {
+  position: absolute;
+  top: -24px;
+  left: var(--x);
+  width: var(--size);
+  height: calc(var(--size) * 0.8);
+  border-radius: 100% 0 100% 0;
+  background: #f4b6c2;
+  opacity: 0.9;
+  animation: petal-fall var(--duration) linear var(--delay) infinite;
+}
+
+@keyframes petal-fall {
+  from {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate(var(--drift), 110vh) rotate(540deg);
+  }
+}
