@@ -538,6 +538,77 @@ textarea {
   font-variant-numeric: tabular-nums;
 }
 
+/* 地方ごとの小さなリング：横にスクロールし、画面の端まで使う */
+.region-rings {
+  display: flex;
+  gap: 8px;
+  width: calc(100% + 2 * var(--gutter));
+  margin: 16px calc(-1 * var(--gutter)) 0;
+  padding: 0 var(--gutter) 4px;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  /* 天守のシルエットより手前に出す */
+  position: relative;
+}
+
+.region-rings::-webkit-scrollbar {
+  display: none;
+}
+
+.region-ring {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  flex: none;
+  width: 76px;
+  scroll-snap-align: start;
+}
+
+.region-ring__ring {
+  width: 60px;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.region-ring__count {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.region-ring__name {
+  color: var(--ink-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* 制覇した地方は、リングを朱で満たして印を押した見た目にする */
+.progress-ring--completed .progress-ring__track {
+  stroke: var(--vermilion);
+}
+
+/* ===== 朱印（制覇の印） ===== */
+.seal {
+  display: inline-grid;
+  place-items: center;
+  padding: 0.2em;
+  border: 2px solid var(--vermilion);
+  border-radius: 6px;
+  color: var(--vermilion);
+  font-family: var(--font-mincho);
+  font-weight: 700;
+  line-height: 1;
+  writing-mode: vertical-rl;
+  letter-spacing: 0.1em;
+  rotate: -8deg;
+}
+
+.seal--small {
+  font-size: 13px;
+}
+
 .list-toolbar {
   position: sticky;
   top: 0;

@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
-import { REGIONS } from '../domain/castles'
+import { castles, REGIONS } from '../domain/castles'
 import type { StampBook, StampFilter } from '../domain/stampBook'
 import { CastleListPage } from './CastleListPage'
 
@@ -17,6 +17,11 @@ function renderPage(
     </MemoryRouter>,
   )
   return { onFilterChange }
+}
+
+/** 城の行（詳細画面へのリンクを持つ項目） */
+function castleItems() {
+  return screen.queryAllByRole('listitem').filter((li) => within(li).queryByRole('link'))
 }
 
 describe('CastleListPage', () => {
@@ -35,7 +40,7 @@ describe('CastleListPage', () => {
 
   it('100 城を表示する', () => {
     renderPage({})
-    expect(screen.getAllByRole('listitem')).toHaveLength(100)
+    expect(castleItems()).toHaveLength(100)
   })
 
   it('各地方の中に、その地方の城を番号・城名・都道府県つきで番号順に表示する', () => {
@@ -63,6 +68,37 @@ describe('CastleListPage', () => {
       expect(ring).toHaveTextContent('3%')
     })
 
+    it('地方ごとの進捗を小さなリングで、スタンプ帳の順に表示する', () => {
+      renderPage(book)
+      const list = screen.getByRole('list', { name: '地方ごとの進捗' })
+      expect(
+        within(list)
+          .getAllByRole('img')
+          .map((ring) => ring.getAttribute('aria-label')),
+      ).toEqual([
+        '北海道・東北 2/13（15%）',
+        '関東・甲信越 0/19（0%）',
+        '北陸・東海 0/16（0%）',
+        '近畿 1/14（7%）',
+        '中国・四国 0/22（0%）',
+        '九州・沖縄 0/16（0%）',
+      ])
+    })
+
+    it('制覇した地方のリングは「制覇」の印になる', () => {
+      const allTohoku: StampBook = Object.fromEntries(
+        castles
+          .filter((c) => c.region === '北海道・東北')
+          .map((c) => [c.number, { stampedOn: '2026-01-01', memo: '' }]),
+      )
+      renderPage(allTohoku)
+      const list = screen.getByRole('list', { name: '地方ごとの進捗' })
+      const tohoku = within(list).getByRole('img', { name: /^北海道・東北/ })
+      expect(tohoku).toHaveAccessibleName('北海道・東北 13/13（100%）制覇')
+      expect(tohoku).toHaveTextContent('制覇')
+      expect(within(list).getByRole('img', { name: /^近畿/ })).not.toHaveTextContent('制覇')
+    })
+
     it('地方の見出しに地方ごとの進捗を表示する', () => {
       renderPage(book)
       const headings = screen.getAllByRole('heading', { level: 2 })
@@ -82,8 +118,7 @@ describe('CastleListPage', () => {
       59: { stampedOn: '2026-09-30', memo: '' },
       100: { stampedOn: null, memo: 'メモだけ' },
     }
-    const itemOf = (name: string) =>
-      screen.getAllByRole('listitem').find((li) => li.textContent?.includes(name))!
+    const itemOf = (name: string) => castleItems().find((li) => li.textContent?.includes(name))!
 
     it('押印済みの城にだけ印を表示する', () => {
       renderPage(book)
@@ -117,7 +152,7 @@ describe('CastleListPage', () => {
 
     it('押印済み：押印済みの城だけを表示し、城のない地方は見出しごと出さない', () => {
       renderPage(book, 'stamped')
-      expect(screen.getAllByRole('listitem')).toHaveLength(1)
+      expect(castleItems()).toHaveLength(1)
       expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
         '近畿1/14',
       ])
@@ -125,7 +160,7 @@ describe('CastleListPage', () => {
 
     it('未押印：未押印の城だけを表示する', () => {
       renderPage(book, 'unstamped')
-      expect(screen.getAllByRole('listitem')).toHaveLength(99)
+      expect(castleItems()).toHaveLength(99)
       expect(screen.queryByText('姫路城')).toBeNull()
     })
 
@@ -136,7 +171,7 @@ describe('CastleListPage', () => {
 
     it('該当する城がなければその旨を表示する', () => {
       renderPage({}, 'stamped')
-      expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+      expect(castleItems()).toHaveLength(0)
       expect(screen.getByText('該当する城はありません')).toBeInTheDocument()
     })
   })

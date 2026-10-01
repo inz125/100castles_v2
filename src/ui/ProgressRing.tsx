@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { percentOf, type Progress } from '../domain/stampBook'
+import { isCompleted, percentOf, type Progress } from '../domain/stampBook'
 
 type Props = {
   /** 読み上げ用の名前（例：全体、近畿） */
@@ -13,12 +13,15 @@ type Props = {
 /** 押印済みの割合を朱色で塗る円形の進捗 */
 export function ProgressRing({ label, progress, className, children }: Props) {
   const ratio = progress.total === 0 ? 0 : (progress.stamped / progress.total) * 100
+  const completed = isCompleted(progress)
 
   return (
     <div
       role="img"
-      aria-label={`${label} ${progress.stamped}/${progress.total}（${percentOf(progress)}%）`}
-      className={['progress-ring', className].filter(Boolean).join(' ')}
+      aria-label={`${label} ${progress.stamped}/${progress.total}（${percentOf(progress)}%）${completed ? '制覇' : ''}`}
+      className={['progress-ring', completed && 'progress-ring--completed', className]
+        .filter(Boolean)
+        .join(' ')}
     >
       <svg viewBox="0 0 100 100" className="progress-ring__svg" aria-hidden="true">
         <circle className="progress-ring__track" cx="50" cy="50" r="44" />

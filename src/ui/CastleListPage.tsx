@@ -5,6 +5,7 @@ import {
   filterGroups,
   getRecord,
   groupByRegion,
+  isCompleted,
   percentOf,
   progressOf,
   type Progress,
@@ -25,7 +26,8 @@ type Props = {
 }
 
 export function CastleListPage({ book, filter, onFilterChange }: Props) {
-  const groups = filterGroups(groupByRegion(castles, book), book, filter)
+  const allGroups = groupByRegion(castles, book)
+  const groups = filterGroups(allGroups, book, filter)
   const overall = progressOf(castles, book)
 
   return (
@@ -39,6 +41,7 @@ export function CastleListPage({ book, filter, onFilterChange }: Props) {
           </span>
           <span className="progress-hero__percent">{percentOf(overall)}%</span>
         </ProgressRing>
+        <RegionRings groups={allGroups} />
       </section>
       <div className="list-toolbar">
         <FilterControl filter={filter} onFilterChange={onFilterChange} />
@@ -48,6 +51,30 @@ export function CastleListPage({ book, filter, onFilterChange }: Props) {
         <RegionSection key={group.region} group={group} book={book} />
       ))}
     </div>
+  )
+}
+
+/** 地方ごとの小さな進捗リング（横にスクロールする） */
+function RegionRings({ groups }: { groups: readonly RegionGroup[] }) {
+  return (
+    <ul className="region-rings" aria-label="地方ごとの進捗">
+      {groups.map(({ region, progress }) => (
+        <li key={region} className="region-ring">
+          <ProgressRing label={region} progress={progress} className="region-ring__ring">
+            {isCompleted(progress) ? (
+              <span className="seal seal--small">制覇</span>
+            ) : (
+              <span className="region-ring__count">
+                {progress.stamped}/{progress.total}
+              </span>
+            )}
+          </ProgressRing>
+          <span className="region-ring__name" aria-hidden="true">
+            {region}
+          </span>
+        </li>
+      ))}
+    </ul>
   )
 }
 

@@ -27,4 +27,11 @@ describe('ProgressRing', () => {
     )
     expect(screen.getByText('中央')).toBeInTheDocument()
   })
+
+  it('揃ったら「制覇」も読み上げる', () => {
+    render(<ProgressRing label="近畿" progress={{ stamped: 14, total: 14 }} />)
+    expect(screen.getByRole('img', { name: '近畿 14/14（100%）制覇' })).toHaveClass(
+      'progress-ring--completed',
+    )
+  })
 })

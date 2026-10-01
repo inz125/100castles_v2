@@ -26,6 +26,11 @@ const pendingLocation: LocationProvider = { getCurrentPosition: () => new Promis
 /** 日本時間の 2026-09-30 00:30（UTC ではまだ 9/29） */
 const NOW = new Date(2026, 8, 30, 0, 30)
 
+/** 一覧の城の行（詳細画面へのリンクを持つ項目） */
+function castleItems() {
+  return screen.queryAllByRole('listitem').filter((li) => within(li).queryByRole('link'))
+}
+
 function renderApp(
   repository: StampBookRepository = new InMemoryStampBookRepository(),
   initialPath: InitialEntry = '/',
@@ -161,7 +166,7 @@ describe('App', () => {
     await repository.saveRecord(59, { stampedOn: '2026-09-30', memo: '' })
     renderApp(repository)
     expect(await screen.findByRole('img', { name: /^全体 1\/100/ })).toBeInTheDocument()
-    expect(screen.getAllByRole('listitem')).toHaveLength(100)
+    expect(castleItems()).toHaveLength(100)
     expect(screen.queryByText('読み込み中…')).toBeNull()
   })
 
@@ -234,7 +239,7 @@ describe('App', () => {
       expect(screen.queryAllByRole('listitem')).toHaveLength(0)
 
       await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
-      expect(screen.getAllByRole('listitem')).toHaveLength(100)
+      expect(castleItems()).toHaveLength(100)
     })
 
     it.each(['/nearby', '/map', '/castles/59'])(
@@ -346,7 +351,7 @@ describe('App', () => {
     it('「一覧」タブで一覧に戻る', async () => {
       renderApp(undefined, '/map')
       await userEvent.click(await screen.findByRole('link', { name: '一覧' }))
-      expect(screen.getAllByRole('listitem')).toHaveLength(100)
+      expect(castleItems()).toHaveLength(100)
     })
 
     it.each([
@@ -376,7 +381,7 @@ describe('App', () => {
     it('詳細画面から一覧に戻れる', async () => {
       renderApp(undefined, '/castles/59')
       await userEvent.click(await screen.findByRole('link', { name: '一覧に戻る' }))
-      expect(screen.getAllByRole('listitem')).toHaveLength(100)
+      expect(castleItems()).toHaveLength(100)
     })
 
     it.each([
