@@ -15,6 +15,7 @@ import {
 import { CastleLink } from './castleLinks'
 import { CastleSilhouette } from './CastleSilhouette'
 import { FilterControl } from './FilterControl'
+import { scrollBehavior } from './motion'
 import { ProgressRing } from './ProgressRing'
 import { StampMark } from './StampMark'
 
@@ -35,7 +36,7 @@ export function CastleListPage({ book, filter, onFilterChange }: Props) {
     if (scrollTarget === null) return
     const section = sections.current.get(scrollTarget)
     if (!section) return
-    section.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
+    section.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
     setScrollTarget(null)
   }, [scrollTarget, filter])
 
@@ -155,8 +156,4 @@ function ProgressText({ progress, className }: { progress: Progress; className?:
       {progress.stamped}/{progress.total}
     </span>
   )
-}
-
-function prefersReducedMotion() {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 }
