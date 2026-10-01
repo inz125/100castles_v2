@@ -354,6 +354,24 @@ describe('App', () => {
       expect(castleItems()).toHaveLength(100)
     })
 
+    it('一覧を開いているときに「一覧」タブを押すと、一番上までスクロールする', async () => {
+      const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+      renderApp()
+      await screen.findByRole('img', { name: /^全体 0\/100/ })
+      await userEvent.click(tab('一覧'))
+      expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }))
+      scrollTo.mockRestore()
+    })
+
+    it('ほかのタブから「一覧」タブを押したときはスクロールしない（画面を切り替えるだけ）', async () => {
+      const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+      renderApp(undefined, '/map')
+      await userEvent.click(await screen.findByRole('link', { name: '一覧' }))
+      expect(castleItems()).toHaveLength(100)
+      expect(scrollTo).not.toHaveBeenCalled()
+      scrollTo.mockRestore()
+    })
+
     it.each([
       ['/nearby', '近くの城'],
       ['/map', '地図'],
