@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { castles, REGIONS } from './castles'
 import {
+  completionByStamping,
   filterCastles,
   filterGroups,
   getRecord,
@@ -145,5 +146,42 @@ describe('isCompleted', () => {
 
   it('対象の城がなければ制覇ではない', () => {
     expect(isCompleted({ stamped: 0, total: 0 })).toBe(false)
+  })
+})
+
+describe('completionByStamping', () => {
+  const stamped = { stampedOn: '2026-10-01', memo: '' } as const
+  const unstamped = { stampedOn: null, memo: '' } as const
+  /** 指定した城をすべて押印済みにした記録帳 */
+  const bookOf = (numbers: readonly number[]): StampBook =>
+    Object.fromEntries(numbers.map((n) => [n, stamped]))
+  const tohoku = castles.filter((c) => c.region === '北海道・東北').map((c) => c.number)
+  const all = castles.map((c) => c.number)
+
+  it('地方の最後の 1 城を押印済みにすると、その地方の制覇', () => {
+    const book = bookOf(tohoku.filter((n) => n !== 13))
+    expect(completionByStamping(book, 13, stamped)).toEqual({
+      kind: 'region',
+      region: '北海道・東北',
+    })
+  })
+
+  it('最後の 1 城で 100 城が揃えば、地方ではなく 100 城の制覇', () => {
+    const book = bookOf(all.filter((n) => n !== 59))
+    expect(completionByStamping(book, 59, stamped)).toEqual({ kind: 'all' })
+  })
+
+  it('地方に未押印の城が残っていれば何もない', () => {
+    expect(completionByStamping({}, 1, stamped)).toBeNull()
+  })
+
+  it('もともと押印済みの城（押印日の変更など）なら何もない', () => {
+    const book = bookOf(tohoku)
+    expect(completionByStamping(book, 13, { stampedOn: '2026-09-01', memo: '' })).toBeNull()
+  })
+
+  it('押印済みを外したときは何もない', () => {
+    const book = bookOf(tohoku)
+    expect(completionByStamping(book, 13, unstamped)).toBeNull()
   })
 })
