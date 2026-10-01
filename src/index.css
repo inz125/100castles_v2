@@ -1146,3 +1146,22 @@ textarea {
   font-size: 20px;
   letter-spacing: 0.04em;
 }
+
+/* ===== 一覧：朱印らしい印（二重の枠とかすれ） ===== */
+.list-page .stamp-mark {
+  /* 外枠の内側にもう 1 本細い枠を入れる */
+  box-shadow:
+    inset 0 0 0 1.5px var(--surface),
+    inset 0 0 0 2.5px var(--vermilion);
+  background: var(--vermilion-soft);
+  /* インクのかすれ：まだらなマスクで所々を薄くする */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.4 2.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23k)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='k'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -2.4 2.1'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23k)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 60px;
+  mask-size: 60px;
+}
+
+.list-page .stamp-mark--small {
+  width: 28px;
+  height: 28px;
+}
