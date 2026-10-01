@@ -6,6 +6,8 @@
   --bg: #f4eee1;
   --surface: #fbf8f1;
   --ink: #2a2723;
+  /* 題字（アプリ名・地方名）に使う、より濃い墨 */
+  --ink-strong: #14110e;
   --ink-muted: #6e665b;
   --line: #ddd3c0;
   --vermilion: #c63d2a;
@@ -28,6 +30,7 @@
     --bg: #1b1916;
     --surface: #25221e;
     --ink: #ece5d8;
+    --ink-strong: #fbf6ec;
     --ink-muted: #a49a8b;
     --line: #3b362f;
     --vermilion: #e0664f;
@@ -133,10 +136,13 @@ textarea {
 }
 
 .app-title {
+  color: var(--ink-strong);
   font-family: var(--font-mincho);
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  /* 明朝体の太字（W6）よりもう一段、筆で書いたような力強さを出す */
+  -webkit-text-stroke: 0.5px currentColor;
 }
 
 .empty {
@@ -1135,8 +1141,19 @@ textarea {
 }
 
 .list-page .region__heading {
-  font-size: 20px;
-  letter-spacing: 0.04em;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+/* 進捗の数は題字の字間を引き継がない */
+.list-page .region__progress {
+  letter-spacing: normal;
+}
+
+.list-page .region__name {
+  color: var(--ink-strong);
+  -webkit-text-stroke: 0.4px currentColor;
 }
 
 /* ===== 一覧：朱印らしい印（二重の枠とかすれ） ===== */
