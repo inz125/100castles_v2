@@ -6,7 +6,6 @@ import {
   getRecord,
   groupByRegion,
   isCompleted,
-  percentOf,
   progressOf,
   type Progress,
   type RegionGroup,
@@ -56,7 +55,6 @@ export function CastleListPage({ book, filter, onFilterChange }: Props) {
               <span className="progress-hero__stamped">{overall.stamped}</span>
               <span className="progress-hero__total"> / {overall.total}</span>
             </span>
-            <span className="progress-hero__percent">{percentOf(overall)}%</span>
           </ProgressRing>
         </div>
         <RegionRings groups={allGroups} onSelect={showRegion} />

@@ -65,7 +65,7 @@ describe('CastleListPage', () => {
       renderPage(book)
       const ring = screen.getByRole('img', { name: '全体 3/100（3%）' })
       expect(ring).toHaveTextContent(/3\s*\/\s*100/)
-      expect(ring).toHaveTextContent('3%')
+      expect(ring).not.toHaveTextContent('%')
     })
 
     it('地方ごとの進捗を小さなリングで、スタンプ帳の順に表示する', () => {

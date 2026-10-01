@@ -533,15 +533,6 @@ textarea {
   font-size: 18px;
 }
 
-.progress-hero__percent {
-  display: block;
-  margin-top: 4px;
-  color: var(--vermilion);
-  font-size: 13px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
 /* 地方ごとの小さなリング：横にスクロールし、画面の端まで使う */
 .region-rings {
   display: flex;
