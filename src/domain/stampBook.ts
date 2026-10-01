@@ -22,6 +22,11 @@ export function progressOf(targets: readonly Castle[], book: StampBook): Progres
   return { stamped, total: targets.length }
 }
 
+/** 制覇した（対象の城をすべて押印した）か */
+export function isCompleted(progress: Progress): boolean {
+  return progress.total > 0 && progress.stamped === progress.total
+}
+
 export type RegionGroup = {
   region: Region
   castles: readonly Castle[]

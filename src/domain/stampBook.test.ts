@@ -5,6 +5,7 @@ import {
   filterGroups,
   getRecord,
   groupByRegion,
+  isCompleted,
   progressOf,
   type RegionGroup,
   type StampBook,
@@ -130,5 +131,19 @@ describe('filterGroups', () => {
     const kinki = filterGroups(groups, book, 'unstamped').find((g) => g.region === '近畿')
     expect(kinki?.castles).toHaveLength(13)
     expect(kinki?.progress).toEqual({ stamped: 1, total: 14 })
+  })
+})
+
+describe('isCompleted', () => {
+  it('押印済みが全体の数に届いていれば制覇', () => {
+    expect(isCompleted({ stamped: 13, total: 13 })).toBe(true)
+  })
+
+  it('1 つでも残っていれば制覇ではない', () => {
+    expect(isCompleted({ stamped: 12, total: 13 })).toBe(false)
+  })
+
+  it('対象の城がなければ制覇ではない', () => {
+    expect(isCompleted({ stamped: 0, total: 0 })).toBe(false)
   })
 })
