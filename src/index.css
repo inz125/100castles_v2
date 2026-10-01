@@ -1106,3 +1106,43 @@ textarea {
     transition: none;
   }
 }
+
+/* ===== 一覧：和紙の地模様と明朝体 ===== */
+:root {
+  /* 和紙の繊維のような細かいむら（暗い色を薄く重ねる） */
+  --washi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.35' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.27 0 0 0 0 0.15 0 0 0 0.9 -0.32'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* ダークモードは明るい色を薄く重ねる */
+    --washi: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.35' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.9 0 0 0 0 0.8 0 0 0 0.6 -0.24'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  }
+}
+
+/* 一覧を開いている間だけ、画面全体に和紙の地模様を敷く */
+.list-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--washi);
+  pointer-events: none;
+}
+
+/* 絞り込みは地模様が少し透けるようにする */
+.list-page .list-toolbar {
+  background: rgb(from var(--bg) r g b / 0.88);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.list-page .castle-row__name {
+  font-family: var(--font-mincho);
+  font-size: 17px;
+}
+
+.list-page .region__heading {
+  font-size: 20px;
+  letter-spacing: 0.04em;
+}
