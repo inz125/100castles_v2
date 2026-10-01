@@ -1086,3 +1086,19 @@ textarea {
     transform: translate(var(--drift), 110vh) rotate(540deg);
   }
 }
+
+/* 「視差効果を減らす」：押される動き・花びら・リングの伸びを省く（印は傾けたまま表示する） */
+@media (prefers-reduced-motion: reduce) {
+  .celebration__seal {
+    animation: none;
+    transform: rotate(-8deg);
+  }
+
+  .petals {
+    display: none;
+  }
+
+  .progress-ring__fill {
+    transition: none;
+  }
+}
