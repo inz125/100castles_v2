@@ -61,6 +61,7 @@ export function CastleListPage({ book, filter, onFilterChange }: Props) {
         </div>
         <RegionRings groups={allGroups} onSelect={showRegion} />
       </section>
+      <div className="seigaiha" aria-hidden="true" />
       <div className="list-toolbar">
         <FilterControl filter={filter} onFilterChange={onFilterChange} />
       </div>
