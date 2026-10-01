@@ -25,14 +25,17 @@ export function ProgressRing({ label, progress, className, children }: Props) {
     >
       <svg viewBox="0 0 100 100" className="progress-ring__svg" aria-hidden="true">
         <circle className="progress-ring__track" cx="50" cy="50" r="44" />
-        <circle
-          className="progress-ring__fill"
-          cx="50"
-          cy="50"
-          r="44"
-          pathLength={100}
-          strokeDasharray={`${ratio} 100`}
-        />
+        {/* 0 のときに描くと、線の丸い端だけが点として残るので描かない */}
+        {ratio > 0 && (
+          <circle
+            className="progress-ring__fill"
+            cx="50"
+            cy="50"
+            r="44"
+            pathLength={100}
+            strokeDasharray={`${ratio} 100`}
+          />
+        )}
       </svg>
       {children && (
         <div className="progress-ring__center" aria-hidden="true">
