@@ -1,9 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes, useMatch, useParams } from 'react-router'
 import { castles } from './domain/castles'
 import { toLocalIsoDate } from './domain/dates'
 import type { ShareCode } from './domain/shareCode'
-import { getRecord, type StampBook, type StampFilter } from './domain/stampBook'
+import {
+  completionByStamping,
+  getRecord,
+  type Completion,
+  type StampBook,
+  type StampFilter,
+} from './domain/stampBook'
 import type { IsoDate, StampRecord } from './domain/stampRecord'
 import type { LocationProvider } from './location/locationProvider'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
@@ -14,6 +20,7 @@ import { startSharing } from './sharing/startSharing'
 import { syncStatusOf } from './sharing/syncStatus'
 import { CastleDetailPage, CastleNotFound } from './ui/CastleDetailPage'
 import { CastleListPage } from './ui/CastleListPage'
+import { Celebration } from './ui/Celebration'
 import {
   LIST_FILTER,
   loadStampFilter,
@@ -55,6 +62,11 @@ function App({
   const [filter, changeFilter] = useSavedFilter(preferenceStorage, LIST_FILTER)
   const [nearbyFilter, changeNearbyFilter] = useSavedFilter(preferenceStorage, NEARBY_FILTER)
   const [saveFailed, setSaveFailed] = useState(false)
+  // 押印して地方や 100 城が揃ったときの演出（揃うたびに作り直すため、回数も持つ）
+  const [celebration, setCelebration] = useState<{ completion: Completion; count: number } | null>(
+    null,
+  )
+  const dismissCelebration = useCallback(() => setCelebration(null), [])
   // 「共有」は一覧タブの見出しにだけ出す
   const isListTab = useMatch('/') !== null
   // 共有中の共有コード（共有していない、またはクラウドが使えなければ null）
@@ -119,6 +131,8 @@ function App({
   const updateRecord = async (castleNumber: number, record: StampRecord) => {
     if (state.status !== 'ready') return
     const previous = getRecord(state.book, castleNumber)
+    const completion = completionByStamping(state.book, castleNumber, record)
+    if (completion) setCelebration((c) => ({ completion, count: (c?.count ?? 0) + 1 }))
     replaceRecord(castleNumber, record)
     setSaveFailed(false)
     try {
@@ -203,6 +217,13 @@ function App({
         </Routes>
       )}
       <TabBar />
+      {celebration && (
+        <Celebration
+          key={celebration.count}
+          completion={celebration.completion}
+          onDismiss={dismissCelebration}
+        />
+      )}
     </main>
   )
 }

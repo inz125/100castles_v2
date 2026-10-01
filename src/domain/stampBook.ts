@@ -1,4 +1,4 @@
-import { REGIONS, type Castle, type Region } from './castles'
+import { castles, REGIONS, type Castle, type Region } from './castles'
 import { createEmptyRecord, isStamped, type StampRecord } from './stampRecord'
 
 /**
@@ -20,6 +20,16 @@ export function getRecord(book: StampBook, castleNumber: number): StampRecord {
 export function progressOf(targets: readonly Castle[], book: StampBook): Progress {
   const stamped = targets.filter((c) => isStamped(getRecord(book, c.number))).length
   return { stamped, total: targets.length }
+}
+
+/** 達成率（%）。揃うまでは 100 にしないよう切り捨てる */
+export function percentOf({ stamped, total }: Progress): number {
+  return total === 0 ? 0 : Math.floor((stamped / total) * 100)
+}
+
+/** 制覇した（対象の城をすべて押印した）か */
+export function isCompleted(progress: Progress): boolean {
+  return progress.total > 0 && progress.stamped === progress.total
 }
 
 export type RegionGroup = {
@@ -64,4 +74,28 @@ export function filterGroups(
   return groups
     .map((g) => ({ ...g, castles: filterCastles(g.castles, book, filter) }))
     .filter((g) => g.castles.length > 0)
+}
+
+/** 押印して揃ったもの：地方の制覇、または 100 城の制覇 */
+export type Completion = { kind: 'region'; region: Region } | { kind: 'all' }
+
+/**
+ * 城の記録を next に変えたことで揃ったもの。揃わなければ null。
+ * 未押印から押印済みにしたときだけ判定する（押印日の変更などでは揃ったことにしない）。
+ * 地方と 100 城が同時に揃ったときは 100 城を返す。
+ */
+export function completionByStamping(
+  book: StampBook,
+  castleNumber: number,
+  next: StampRecord,
+): Completion | null {
+  if (isStamped(getRecord(book, castleNumber)) || !isStamped(next)) return null
+  const nextBook: StampBook = { ...book, [castleNumber]: next }
+  if (isCompleted(progressOf(castles, nextBook))) return { kind: 'all' }
+  const castle = castles.find((c) => c.number === castleNumber)
+  if (!castle) return null
+  const inRegion = castles.filter((c) => c.region === castle.region)
+  return isCompleted(progressOf(inRegion, nextBook))
+    ? { kind: 'region', region: castle.region }
+    : null
 }
