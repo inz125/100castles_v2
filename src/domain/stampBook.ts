@@ -22,6 +22,11 @@ export function progressOf(targets: readonly Castle[], book: StampBook): Progres
   return { stamped, total: targets.length }
 }
 
+/** 達成率（%）。揃うまでは 100 にしないよう切り捨てる */
+export function percentOf({ stamped, total }: Progress): number {
+  return total === 0 ? 0 : Math.floor((stamped / total) * 100)
+}
+
 /** 制覇した（対象の城をすべて押印した）か */
 export function isCompleted(progress: Progress): boolean {
   return progress.total > 0 && progress.stamped === progress.total

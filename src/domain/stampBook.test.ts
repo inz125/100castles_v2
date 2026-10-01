@@ -7,6 +7,7 @@ import {
   getRecord,
   groupByRegion,
   isCompleted,
+  percentOf,
   progressOf,
   type RegionGroup,
   type StampBook,
@@ -183,5 +184,20 @@ describe('completionByStamping', () => {
   it('押印済みを外したときは何もない', () => {
     const book = bookOf(tohoku)
     expect(completionByStamping(book, 13, unstamped)).toBeNull()
+  })
+})
+
+describe('percentOf', () => {
+  it('押印済みの割合を % で返す', () => {
+    expect(percentOf({ stamped: 37, total: 100 })).toBe(37)
+  })
+
+  it('切り捨てる（揃うまでは 100 にしない）', () => {
+    expect(percentOf({ stamped: 15, total: 16 })).toBe(93)
+    expect(percentOf({ stamped: 99, total: 100 })).toBe(99)
+  })
+
+  it('対象の城がなければ 0', () => {
+    expect(percentOf({ stamped: 0, total: 0 })).toBe(0)
   })
 })

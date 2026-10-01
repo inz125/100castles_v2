@@ -803,3 +803,42 @@ textarea {
     transition: none;
   }
 }
+
+/* ===== 進捗リング ===== */
+.progress-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+}
+
+.progress-ring__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* 12 時の位置から時計回りに塗る */
+  transform: rotate(-90deg);
+}
+
+.progress-ring__track,
+.progress-ring__fill {
+  fill: none;
+  stroke-width: 8;
+}
+
+.progress-ring__track {
+  stroke: var(--line);
+}
+
+.progress-ring__fill {
+  stroke: var(--vermilion);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.progress-ring__center {
+  position: relative;
+  text-align: center;
+  line-height: 1.1;
+}
