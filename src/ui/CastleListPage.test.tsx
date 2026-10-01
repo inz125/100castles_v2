@@ -113,6 +113,18 @@ describe('CastleListPage', () => {
     })
   })
 
+  it('制覇した地方の見出しには「制覇」の印を付ける', () => {
+    const allTohoku: StampBook = Object.fromEntries(
+      castles
+        .filter((c) => c.region === '北海道・東北')
+        .map((c) => [c.number, { stampedOn: '2026-01-01', memo: '' }]),
+    )
+    renderPage(allTohoku)
+    const [tohoku, kanto] = screen.getAllByRole('heading', { level: 2 })
+    expect(tohoku).toHaveTextContent('北海道・東北制覇13/13')
+    expect(kanto).not.toHaveTextContent('制覇')
+  })
+
   describe('押印済みの印', () => {
     const book: StampBook = {
       59: { stampedOn: '2026-09-30', memo: '' },

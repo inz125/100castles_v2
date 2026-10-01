@@ -124,7 +124,10 @@ function RegionSection({
   return (
     <section ref={sectionRef} aria-labelledby={headingId} className="region">
       <h2 id={headingId} className="region__heading">
-        <span className="region__name">{group.region}</span>
+        <span className="region__name">
+          {group.region}
+          {isCompleted(group.progress) && <span className="seal seal--inline">制覇</span>}
+        </span>
         <ProgressText progress={group.progress} className="region__progress" />
       </h2>
       <ul className="castle-list">

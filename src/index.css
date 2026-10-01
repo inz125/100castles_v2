@@ -628,6 +628,15 @@ textarea {
   font-size: 13px;
 }
 
+/* 地方見出しの横に添える横書きの印 */
+.seal--inline {
+  margin-left: 8px;
+  padding: 0.15em 0.35em;
+  font-size: 13px;
+  writing-mode: horizontal-tb;
+  vertical-align: 0.15em;
+}
+
 .list-toolbar {
   position: sticky;
   top: 0;
