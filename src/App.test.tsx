@@ -336,6 +336,16 @@ describe('App', () => {
       expect(tab('近く')).not.toHaveAttribute('aria-current')
     })
 
+    it('各タブにアイコンが付いている（読み上げはタブの名前だけ）', async () => {
+      renderApp()
+      await screen.findByRole('img', { name: /^全体 0\/100/ })
+      for (const name of ['一覧', '近く', '地図']) {
+        const icon = tab(name).querySelector('svg')
+        expect(icon).not.toBeNull()
+        expect(icon).toHaveAttribute('aria-hidden', 'true')
+      }
+    })
+
     it.each([
       ['近く', '近くの城'],
       ['地図', '地図'],

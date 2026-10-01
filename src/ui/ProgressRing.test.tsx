@@ -19,6 +19,13 @@ describe('ProgressRing', () => {
     expect(fill).toHaveAttribute('stroke-dasharray', '25 100')
   })
 
+  it('1 つも押印していなければ朱を塗らない（線の丸い端だけが点で残らないように）', () => {
+    const { container } = render(
+      <ProgressRing label="全体" progress={{ stamped: 0, total: 100 }} />,
+    )
+    expect(container.querySelector('.progress-ring__fill')).toBeNull()
+  })
+
   it('中央に渡した内容を表示する', () => {
     render(
       <ProgressRing label="全体" progress={{ stamped: 1, total: 4 }}>
