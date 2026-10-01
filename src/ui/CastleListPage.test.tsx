@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { castles, REGIONS } from '../domain/castles'
 import type { StampBook, StampFilter } from '../domain/stampBook'
 import { CastleListPage } from './CastleListPage'
@@ -173,6 +173,44 @@ describe('CastleListPage', () => {
       renderPage({}, 'stamped')
       expect(castleItems()).toHaveLength(0)
       expect(screen.getByText('該当する城はありません')).toBeInTheDocument()
+    })
+  })
+
+  describe('地方のリングをタップ', () => {
+    const allTohoku: StampBook = Object.fromEntries(
+      castles
+        .filter((c) => c.region === '北海道・東北')
+        .map((c) => [c.number, { stampedOn: '2026-01-01', memo: '' }]),
+    )
+    let scrolled: Element[]
+    beforeEach(() => {
+      scrolled = []
+      // jsdom には scrollIntoView がないので、どの要素に対して呼ばれたかを記録する
+      Element.prototype.scrollIntoView = vi.fn<(this: Element) => void>(function (this: Element) {
+        scrolled.push(this)
+      })
+    })
+
+    it('その地方の見出しまでスクロールする', async () => {
+      renderPage({})
+      await userEvent.click(screen.getByRole('button', { name: /^近畿/ }))
+      expect(scrolled).toEqual([screen.getByRole('region', { name: /^近畿/ })])
+    })
+
+    it('絞り込みで表示されていない地方なら、絞り込みを「すべて」にしてからスクロールする', async () => {
+      const onFilterChange = vi.fn<(filter: StampFilter) => void>()
+      const ui = (filter: StampFilter) => (
+        <MemoryRouter>
+          <CastleListPage book={allTohoku} filter={filter} onFilterChange={onFilterChange} />
+        </MemoryRouter>
+      )
+      const { rerender } = render(ui('unstamped'))
+      await userEvent.click(screen.getByRole('button', { name: /^北海道・東北/ }))
+      expect(onFilterChange).toHaveBeenCalledWith('all')
+      expect(scrolled).toEqual([])
+
+      rerender(ui('all'))
+      expect(scrolled).toEqual([screen.getByRole('region', { name: /^北海道・東北/ })])
     })
   })
 })

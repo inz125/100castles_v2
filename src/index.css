@@ -557,13 +557,32 @@ textarea {
   display: none;
 }
 
+.region-rings > li {
+  flex: none;
+  scroll-snap-align: start;
+}
+
 .region-ring {
   display: grid;
   justify-items: center;
   gap: 4px;
-  flex: none;
   width: 76px;
-  scroll-snap-align: start;
+  padding: 4px 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.region-ring:active {
+  background: var(--vermilion-soft);
+}
+
+.region-ring:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
 }
 
 .region-ring__ring {
@@ -648,6 +667,8 @@ textarea {
 /* ===== 一覧：地方と城 ===== */
 .region {
   margin-top: 24px;
+  /* 地方のリングから飛んだとき、見出しが上の絞り込みに隠れないようにする */
+  scroll-margin-top: calc(64px + env(safe-area-inset-top));
 }
 
 .region__heading {
