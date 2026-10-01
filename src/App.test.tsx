@@ -65,7 +65,7 @@ describe('App：共有中', () => {
     await local.saveRecord(2, { stampedOn: '2026-01-01', memo: '' })
     renderApp(local, '/', pendingLocation, await sharedCloud())
 
-    expect(await screen.findByText('1/100')).toBeInTheDocument()
+    expect(await screen.findByRole('img', { name: /^全体 1\/100/ })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /姫路城/ })).toContainElement(
       screen.getByRole('img', { name: '押印済み' }),
     )
@@ -96,7 +96,7 @@ describe('App：共有中', () => {
     it('一覧の見出しに同期の状態を表示し、送信待ち・オフラインに切り替わる', async () => {
       const cloud = await sharedCloud()
       renderApp(undefined, '/', pendingLocation, cloud)
-      await screen.findByText('1/100')
+      await screen.findByRole('img', { name: /^全体 1\/100/ })
       expect(syncStatus()).toHaveTextContent('同期済み')
 
       act(() => cloud.setPendingWrites(CODE, true))
@@ -124,7 +124,7 @@ describe('App：共有中', () => {
 
     it('共有していなければ表示しない', async () => {
       renderApp()
-      await screen.findByText('0/100')
+      await screen.findByRole('img', { name: /^全体 0\/100/ })
       expect(screen.queryByRole('status', { name: '同期の状態' })).toBeNull()
     })
   })
@@ -132,11 +132,11 @@ describe('App：共有中', () => {
   it('もう 1 人の変更が、開き直さなくても画面に反映される', async () => {
     const cloud = await sharedCloud()
     renderApp(undefined, '/', pendingLocation, cloud)
-    await screen.findByText('1/100')
+    await screen.findByRole('img', { name: /^全体 1\/100/ })
 
     await cloud.open(CODE).saveRecord(100, { stampedOn: '2026-09-30', memo: '' })
 
-    expect(await screen.findByText('2/100')).toBeInTheDocument()
+    expect(await screen.findByRole('img', { name: /^全体 2\/100/ })).toBeInTheDocument()
   })
 })
 
@@ -160,7 +160,7 @@ describe('App', () => {
     const repository = new InMemoryStampBookRepository()
     await repository.saveRecord(59, { stampedOn: '2026-09-30', memo: '' })
     renderApp(repository)
-    expect(await screen.findByText('1/100')).toBeInTheDocument()
+    expect(await screen.findByRole('img', { name: /^全体 1\/100/ })).toBeInTheDocument()
     expect(screen.getAllByRole('listitem')).toHaveLength(100)
     expect(screen.queryByText('読み込み中…')).toBeNull()
   })
@@ -228,7 +228,7 @@ describe('App', () => {
   describe('共有画面', () => {
     it('一覧の見出しの「共有」から共有画面を開き、「一覧に戻る」で一覧に戻る', async () => {
       renderApp()
-      await screen.findByText('0/100')
+      await screen.findByRole('img', { name: /^全体 0\/100/ })
       await userEvent.click(screen.getByRole('link', { name: '共有' }))
       expect(screen.getByRole('heading', { level: 2, name: '共有' })).toBeInTheDocument()
       expect(screen.queryAllByRole('listitem')).toHaveLength(0)
@@ -263,7 +263,7 @@ describe('App', () => {
       // もう 1 人の変更が届き、自分の変更はクラウドに入る
       await cloud.open(code).saveRecord(100, { stampedOn: '2026-09-30', memo: '' })
       await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
-      expect(await screen.findByText('2/100')).toBeInTheDocument()
+      expect(await screen.findByRole('img', { name: /^全体 2\/100/ })).toBeInTheDocument()
       await userEvent.click(screen.getByRole('link', { name: /首里城/ }))
       await userEvent.click(screen.getByRole('checkbox', { name: '押印済み' }))
       await waitFor(async () => expect((await cloud.open(code).load())[100]?.stampedOn).toBeNull())
@@ -285,7 +285,7 @@ describe('App', () => {
       )
       await userEvent.click(screen.getByRole('button', { name: '参加する' }))
 
-      expect(await screen.findByText('2/100')).toBeInTheDocument()
+      expect(await screen.findByRole('img', { name: /^全体 2\/100/ })).toBeInTheDocument()
       expect(loadShareSettings(localStorage)).toEqual({ code })
     })
 
@@ -321,7 +321,7 @@ describe('App', () => {
 
     it('一覧・近く・地図のタブがあり、開いているタブが選択状態になる', async () => {
       renderApp()
-      await screen.findByText('0/100')
+      await screen.findByRole('img', { name: /^全体 0\/100/ })
       expect(
         within(tabBar())
           .getAllByRole('link')
@@ -336,7 +336,7 @@ describe('App', () => {
       ['地図', '地図'],
     ])('「%s」タブで %s の画面に切り替わる', async (tabName, heading) => {
       renderApp()
-      await screen.findByText('0/100')
+      await screen.findByRole('img', { name: /^全体 0\/100/ })
       await userEvent.click(tab(tabName))
       expect(screen.getByRole('heading', { level: 2, name: heading })).toBeInTheDocument()
       expect(screen.queryAllByRole('listitem')).toHaveLength(0)
@@ -445,7 +445,7 @@ describe('App', () => {
       await userEvent.click(await stampedCheckbox())
       await userEvent.click(screen.getByRole('link', { name: '一覧に戻る' }))
 
-      expect(screen.getByText('1/100')).toBeInTheDocument()
+      expect(screen.getByRole('img', { name: /^全体 1\/100/ })).toBeInTheDocument()
       expect(screen.getByRole('link', { name: /姫路城/ })).toContainElement(
         screen.getByRole('img', { name: '押印済み' }),
       )

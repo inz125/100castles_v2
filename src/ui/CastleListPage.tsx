@@ -5,6 +5,7 @@ import {
   filterGroups,
   getRecord,
   groupByRegion,
+  percentOf,
   progressOf,
   type Progress,
   type RegionGroup,
@@ -12,7 +13,9 @@ import {
   type StampFilter,
 } from '../domain/stampBook'
 import { CastleLink } from './castleLinks'
+import { CastleSilhouette } from './CastleSilhouette'
 import { FilterControl } from './FilterControl'
+import { ProgressRing } from './ProgressRing'
 import { StampMark } from './StampMark'
 
 type Props = {
@@ -27,19 +30,17 @@ export function CastleListPage({ book, filter, onFilterChange }: Props) {
 
   return (
     <div className="list-page">
+      <section className="progress-hero" aria-label="進捗">
+        <CastleSilhouette className="progress-hero__castle" />
+        <ProgressRing label="全体" progress={overall} className="progress-hero__ring">
+          <span className="progress-hero__count">
+            <span className="progress-hero__stamped">{overall.stamped}</span>
+            <span className="progress-hero__total"> / {overall.total}</span>
+          </span>
+          <span className="progress-hero__percent">{percentOf(overall)}%</span>
+        </ProgressRing>
+      </section>
       <div className="list-toolbar">
-        <div className="overall-progress">
-          <p className="overall-progress__text">
-            <span className="overall-progress__label">押印済み</span>{' '}
-            <ProgressText progress={overall} />
-          </p>
-          <div className="progress-bar" aria-hidden="true">
-            <div
-              className="progress-bar__fill"
-              style={{ width: `${(overall.stamped / overall.total) * 100}%` }}
-            />
-          </div>
-        </div>
         <FilterControl filter={filter} onFilterChange={onFilterChange} />
       </div>
       {groups.length === 0 && <p className="empty">該当する城はありません</p>}

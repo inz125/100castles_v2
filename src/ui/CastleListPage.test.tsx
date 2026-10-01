@@ -56,9 +56,11 @@ describe('CastleListPage', () => {
       100: { stampedOn: null, memo: 'メモだけ' },
     }
 
-    it('全体の進捗を xx/100 で表示する', () => {
+    it('全体の進捗をリングで表示し、数と達成率を読み上げられる', () => {
       renderPage(book)
-      expect(screen.getByText('3/100')).toBeInTheDocument()
+      const ring = screen.getByRole('img', { name: '全体 3/100（3%）' })
+      expect(ring).toHaveTextContent(/3\s*\/\s*100/)
+      expect(ring).toHaveTextContent('3%')
     })
 
     it('地方の見出しに地方ごとの進捗を表示する', () => {
@@ -129,7 +131,7 @@ describe('CastleListPage', () => {
 
     it('絞り込んでも全体の進捗は変わらない', () => {
       renderPage(book, 'unstamped')
-      expect(screen.getByText('1/100')).toBeInTheDocument()
+      expect(screen.getByRole('img', { name: /^全体 1\/100/ })).toBeInTheDocument()
     })
 
     it('該当する城がなければその旨を表示する', () => {
