@@ -982,7 +982,6 @@ textarea {
 /* 朱印：枠の中に縦書きで地方名と「制覇」 */
 .celebration__seal {
   display: flex;
-  flex-direction: row-reverse;
   gap: 0.35em;
   padding: 0.5em 0.45em;
   border: 5px double var(--vermilion);
@@ -1000,6 +999,11 @@ textarea {
 .celebration__name {
   font-size: 22px;
   letter-spacing: 0.08em;
+}
+
+/* 縦書きの中の数字（100）は横に並べて 1 文字分に収める */
+.celebration__digits {
+  text-combine-upright: all;
 }
 
 .celebration__title {

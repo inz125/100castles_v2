@@ -32,7 +32,13 @@ export function Celebration({ completion, onDismiss }: Props) {
       {isAll && <Petals />}
       <div className="celebration__seal">
         <span className="celebration__name">
-          {completion.kind === 'region' ? completion.region : '日本100名城'}
+          {completion.kind === 'region' ? (
+            completion.region
+          ) : (
+            <>
+              日本<span className="celebration__digits">100</span>名城
+            </>
+          )}
         </span>
         <span className="celebration__title">制覇</span>
       </div>
