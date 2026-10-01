@@ -49,14 +49,16 @@ export function CastleListPage({ book, filter, onFilterChange }: Props) {
   return (
     <div className="list-page">
       <section className="progress-hero" aria-label="進捗">
-        <CastleSilhouette className="progress-hero__castle" />
-        <ProgressRing label="全体" progress={overall} className="progress-hero__ring">
-          <span className="progress-hero__count">
-            <span className="progress-hero__stamped">{overall.stamped}</span>
-            <span className="progress-hero__total"> / {overall.total}</span>
-          </span>
-          <span className="progress-hero__percent">{percentOf(overall)}%</span>
-        </ProgressRing>
+        <div className="progress-hero__main">
+          <CastleSilhouette className="progress-hero__castle" />
+          <ProgressRing label="全体" progress={overall} className="progress-hero__ring">
+            <span className="progress-hero__count">
+              <span className="progress-hero__stamped">{overall.stamped}</span>
+              <span className="progress-hero__total"> / {overall.total}</span>
+            </span>
+            <span className="progress-hero__percent">{percentOf(overall)}%</span>
+          </ProgressRing>
+        </div>
         <RegionRings groups={allGroups} onSelect={showRegion} />
       </section>
       <div className="list-toolbar">
