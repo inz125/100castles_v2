@@ -966,3 +966,66 @@ textarea {
   text-align: center;
   line-height: 1.1;
 }
+
+/* ===== 制覇の演出 ===== */
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 0.08);
+  animation: celebration-fade 2.6s ease forwards;
+  cursor: pointer;
+}
+
+/* 朱印：枠の中に縦書きで地方名と「制覇」 */
+.celebration__seal {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 0.35em;
+  padding: 0.5em 0.45em;
+  border: 5px double var(--vermilion);
+  border-radius: 10px;
+  background: rgb(from var(--surface) r g b / 0.92);
+  color: var(--vermilion);
+  font-family: var(--font-mincho);
+  font-weight: 700;
+  line-height: 1.1;
+  writing-mode: vertical-rl;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  animation: seal-press 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.celebration__name {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+
+.celebration__title {
+  font-size: 48px;
+  letter-spacing: 0.1em;
+}
+
+/* 上から少し回転しながら押される */
+@keyframes seal-press {
+  from {
+    opacity: 0;
+    transform: scale(1.8) rotate(-24deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(-8deg);
+  }
+}
+
+/* 押されたまましばらく見せ、最後に消える */
+@keyframes celebration-fade {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

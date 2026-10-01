@@ -456,6 +456,41 @@ describe('App', () => {
       )
     })
 
+    describe('制覇の演出', () => {
+      /** 近畿（49〜62 番）のうち、59 番（姫路城）以外を押印済みにした記録帳 */
+      async function kinkiExceptHimeji() {
+        const repository = new InMemoryStampBookRepository()
+        for (let n = 49; n <= 62; n++) {
+          if (n !== 59) await repository.saveRecord(n, { stampedOn: '2026-01-01', memo: '' })
+        }
+        return repository
+      }
+
+      it('地方の最後の 1 城を押印済みにすると「〇〇 制覇」を表示する', async () => {
+        renderApp(await kinkiExceptHimeji(), '/castles/59')
+        await userEvent.click(await stampedCheckbox())
+        expect(await screen.findByRole('status')).toHaveTextContent('近畿制覇')
+      })
+
+      it('まだ揃っていなければ表示しない', async () => {
+        renderApp(undefined, '/castles/59')
+        await userEvent.click(await stampedCheckbox())
+        expect(await stampedCheckbox()).toBeChecked()
+        expect(screen.queryByRole('status')).toBeNull()
+      })
+
+      it('OFF にしてもう一度 ON にすると、再び表示する', async () => {
+        renderApp(await kinkiExceptHimeji(), '/castles/59')
+        await userEvent.click(await stampedCheckbox())
+        await userEvent.click(await screen.findByRole('status'))
+        expect(screen.queryByRole('status')).toBeNull()
+
+        await userEvent.click(await stampedCheckbox())
+        await userEvent.click(await stampedCheckbox())
+        expect(await screen.findByRole('status')).toHaveTextContent('近畿制覇')
+      })
+    })
+
     it('保存に失敗したら元の状態に戻し、保存できなかったことを表示する', async () => {
       const repository = new InMemoryStampBookRepository()
       repository.saveRecord = () => Promise.reject(new Error('quota exceeded'))
