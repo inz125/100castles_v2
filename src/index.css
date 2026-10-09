@@ -247,29 +247,51 @@ textarea {
   font-family: var(--font-gothic);
 }
 
-/* 城のピン：押印済みは朱、未押印は墨。タップ領域の中央に点を描く
-   （leaflet.css は後から読み込まれるので、.leaflet-marker-icon の display に勝つよう詳細度を上げる） */
+/* 城のピン：天守のシルエット。押印済みは朱、未押印は墨。タップ領域の中央に描く
+   （leaflet.css は後から読み込まれるので、.leaflet-marker-icon の display に勝つよう詳細度を上げる）
+   外側の枠は大きめに取ってあるので、絵（svg）だけがタップに反応するようにして、重なったピンを押し分けられるようにする */
 .leaflet-marker-icon.map-pin {
   display: grid;
   place-items: center;
+  pointer-events: none;
 }
 
-.map-pin::after {
-  content: '';
+/* 白い縁取りで、地図のどの背景の上でも見分けられるようにする。
+   padding は見えない当たり判定（小さく描いても指で押せるように） */
+.map-pin svg {
+  box-sizing: content-box;
+  width: 34px;
+  height: auto;
+  padding: 8px;
+  pointer-events: auto;
+  stroke: #fff;
+  stroke-width: 12;
+  stroke-linejoin: round;
+  paint-order: stroke;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.4));
+}
+
+/* 縮小しているときは小さく、拡大しているときは大きく描く */
+.map--pin-medium .map-pin svg {
+  width: 24px;
+}
+
+.map--pin-small .map-pin svg {
   width: 16px;
-  height: 16px;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  stroke-width: 16;
+}
+
+.map--pin-large .map-pin svg {
+  width: 44px;
 }
 
 /* 地図の上では背景に関わらず見分けやすいよう、ダークモードでも同じ色にする */
-.map-pin--stamped::after {
-  background: #c63d2a;
+.map-pin--stamped {
+  color: #c63d2a;
 }
 
-.map-pin--unstamped::after {
-  background: #2a2723;
+.map-pin--unstamped {
+  color: #2a2723;
 }
 
 /* 現在地の点（青） */

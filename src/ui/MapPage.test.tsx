@@ -73,6 +73,11 @@ describe('MapPage：城のピン', () => {
     expect(pins().map((p) => p.title)).toEqual(castles.map((c) => c.name))
   })
 
+  it('ピンは天守のシルエットで描く', () => {
+    renderPage()
+    expect(pins().every((p) => p.querySelector('svg') !== null)).toBe(true)
+  })
+
   it('押印済みは朱色、未押印は墨色のピン', () => {
     renderPage({ 59: { stampedOn: '2026-09-30', memo: '' } })
     expect(pinOf('姫路城')).toHaveClass('map-pin--stamped')
