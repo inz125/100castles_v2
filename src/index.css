@@ -265,7 +265,7 @@ textarea {
   padding: 8px;
   pointer-events: auto;
   stroke: #fff;
-  stroke-width: 12;
+  stroke-width: 10;
   stroke-linejoin: round;
   paint-order: stroke;
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.4));
@@ -278,7 +278,7 @@ textarea {
 
 .map--pin-small .map-pin svg {
   width: 16px;
-  stroke-width: 16;
+  stroke-width: 14;
 }
 
 .map--pin-large .map-pin svg {

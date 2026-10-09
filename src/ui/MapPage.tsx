@@ -9,16 +9,16 @@ import { getRecord, type StampBook } from '../domain/stampBook'
 import { isStamped, type StampRecord } from '../domain/stampRecord'
 import type { LocationProvider } from '../location/locationProvider'
 import { CastleLink } from './castleLinks'
-import { CastleSilhouette } from './CastleSilhouette'
+import { CastlePinIcon } from './CastlePinIcon'
 import { locationErrorMessage } from './locationMessages'
 import { loadMapView, saveMapView } from './mapViewPreference'
 
-/** 国土地理院の標準地図タイル */
-const GSI_TILE_URL = 'https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png'
-const GSI_ATTRIBUTION =
-  '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>'
-/** 標準地図が提供されている最大の拡大率 */
-const GSI_MAX_ZOOM = 18
+/** OpenStreetMap の標準タイル（API キー不要。Google マップに近い配色） */
+const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+const TILE_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+/** タイルが提供されている最大の拡大率 */
+const TILE_MAX_ZOOM = 19
 
 /**
  * 初めて開いたときの表示：100 城すべてが収まる範囲（北海道〜沖縄）。
@@ -31,8 +31,8 @@ const ALL_CASTLES_BOUNDS = L.latLngBounds(
 /** ピンのタップ領域（見た目の点は CSS でこれより小さく描く） */
 const PIN_SIZE = 52
 
-/** ピンの絵（天守のシルエット）。どのピンも同じなので一度だけ作る */
-const PIN_HTML = renderToStaticMarkup(<CastleSilhouette />)
+/** ピンの絵（天守）。どのピンも同じなので一度だけ作る */
+const PIN_HTML = renderToStaticMarkup(<CastlePinIcon />)
 
 /** この拡大率より小さいと、ピンを小さく描く（日本全体を見たとき重なって潰れないように） */
 const PIN_SMALL_BELOW_ZOOM = 7
@@ -121,7 +121,10 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
   useEffect(() => {
     // 拡大率を 0.5 刻みにする（1 刻みだと、縦長の iPhone で日本全体を収めたとき小さくなりすぎる）
     const map = L.map(containerRef.current!, { zoomSnap: 0.5 })
-    L.tileLayer(GSI_TILE_URL, { attribution: GSI_ATTRIBUTION, maxZoom: GSI_MAX_ZOOM }).addTo(map)
+    L.tileLayer(TILE_URL, {
+      attribution: TILE_ATTRIBUTION,
+      maxZoom: TILE_MAX_ZOOM,
+    }).addTo(map)
     // 動かすたびに表示位置を覚え、次に開いたときに使う
     map.on('moveend', () => {
       const center = map.getCenter()
