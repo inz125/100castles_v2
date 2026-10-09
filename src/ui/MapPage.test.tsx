@@ -38,23 +38,21 @@ describe('MapPage：地図の表示', () => {
     expect(screen.getByRole('region', { name: '城の地図' })).toBeInTheDocument()
   })
 
-  it('国土地理院の標準地図タイルを使う', () => {
+  it('OpenStreetMap の標準タイルを使う', () => {
     const { container } = renderPage()
     const tiles = [...container.querySelectorAll<HTMLImageElement>('img.leaflet-tile')]
     expect(tiles.length).toBeGreaterThan(0)
     for (const tile of tiles) {
-      expect(tile.src).toMatch(
-        /^https:\/\/cyberjapandata\.gsi\.go\.jp\/xyz\/std\/\d+\/\d+\/\d+\.png$/,
-      )
+      expect(tile.src).toMatch(/^https:\/\/tile\.openstreetmap\.org\/\d+\/\d+\/\d+\.png$/)
     }
   })
 
-  it('出典（国土地理院）を表記し、タイル一覧のページにリンクする', () => {
+  it('出典（OpenStreetMap）を表記し、権利表記のページにリンクする', () => {
     renderPage()
     const map = screen.getByRole('region', { name: '城の地図' })
-    expect(within(map).getByRole('link', { name: '国土地理院' })).toHaveAttribute(
+    expect(within(map).getByRole('link', { name: 'OpenStreetMap' })).toHaveAttribute(
       'href',
-      'https://maps.gsi.go.jp/development/ichiran.html',
+      'https://www.openstreetmap.org/copyright',
     )
   })
 

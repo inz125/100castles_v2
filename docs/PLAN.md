@@ -154,3 +154,8 @@ UI 以外のロジック（ドメイン・Repository）を先に固め、UI は 
 ## フェーズ 20：確認と公開
 
 - [x] 20-1. 実機（iPhone）で確認し、main にマージして公開
+
+## フェーズ 21：地図を Google マップ風にする
+
+- [x] 21-1. 地図タイルを OpenStreetMap 標準タイルに変更し、出典（OpenStreetMap）を表記
+- [x] 21-2. 実機（iPhone）で確認し、main にマージして公開
