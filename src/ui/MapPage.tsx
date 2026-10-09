@@ -2,12 +2,14 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { castles, type Castle } from '../domain/castles'
 import type { LatLng } from '../domain/distance'
 import { getRecord, type StampBook } from '../domain/stampBook'
 import { isStamped, type StampRecord } from '../domain/stampRecord'
 import type { LocationProvider } from '../location/locationProvider'
 import { CastleLink } from './castleLinks'
+import { CastleSilhouette } from './CastleSilhouette'
 import { locationErrorMessage } from './locationMessages'
 import { loadMapView, saveMapView } from './mapViewPreference'
 
@@ -27,11 +29,33 @@ const ALL_CASTLES_BOUNDS = L.latLngBounds(
 ).pad(0.05)
 
 /** ピンのタップ領域（見た目の点は CSS でこれより小さく描く） */
-const PIN_SIZE = 28
+const PIN_SIZE = 52
+
+/** ピンの絵（天守のシルエット）。どのピンも同じなので一度だけ作る */
+const PIN_HTML = renderToStaticMarkup(<CastleSilhouette />)
+
+/** この拡大率より小さいと、ピンを小さく描く（日本全体を見たとき重なって潰れないように） */
+const PIN_SMALL_BELOW_ZOOM = 7
+const PIN_MEDIUM_BELOW_ZOOM = 10
+/** この拡大率以上だと、ピンを大きく描く（市町村より近づいたとき見やすいように） */
+const PIN_LARGE_FROM_ZOOM = 13
+
+/** 拡大率に合わせてピンの大きさを切り替える（CSS の .map--pin-small / .map--pin-medium） */
+function updatePinScale(map: L.Map) {
+  const zoom = map.getZoom()
+  const el = map.getContainer()
+  el.classList.toggle('map--pin-small', zoom < PIN_SMALL_BELOW_ZOOM)
+  el.classList.toggle(
+    'map--pin-medium',
+    zoom >= PIN_SMALL_BELOW_ZOOM && zoom < PIN_MEDIUM_BELOW_ZOOM,
+  )
+  el.classList.toggle('map--pin-large', zoom >= PIN_LARGE_FROM_ZOOM)
+}
 
 const pinIcon = (stamped: boolean) =>
   L.divIcon({
     className: `map-pin ${stamped ? 'map-pin--stamped' : 'map-pin--unstamped'}`,
+    html: PIN_HTML,
     iconSize: [PIN_SIZE, PIN_SIZE],
   })
 
@@ -113,6 +137,8 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
     } else {
       map.fitBounds(ALL_CASTLES_BOUNDS)
     }
+    updatePinScale(map)
+    map.on('zoomend', () => updatePinScale(map))
     mapRef.current = map
     return () => {
       map.remove()
