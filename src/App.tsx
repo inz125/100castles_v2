@@ -4,9 +4,9 @@ import { castles } from './domain/castles'
 import { toLocalIsoDate } from './domain/dates'
 import type { ShareCode } from './domain/shareCode'
 import {
-  completionByStamping,
+  effectByStamping,
   getRecord,
-  type Completion,
+  type StampEffect,
   type StampBook,
   type StampFilter,
 } from './domain/stampBook'
@@ -62,8 +62,8 @@ function App({
   const [filter, changeFilter] = useSavedFilter(preferenceStorage, LIST_FILTER)
   const [nearbyFilter, changeNearbyFilter] = useSavedFilter(preferenceStorage, NEARBY_FILTER)
   const [saveFailed, setSaveFailed] = useState(false)
-  // 押印して地方や 100 城が揃ったときの演出（揃うたびに作り直すため、回数も持つ）
-  const [celebration, setCelebration] = useState<{ completion: Completion; count: number } | null>(
+  // 押印したときの演出（地方や 100 城が揃えば制覇の演出）（揃うたびに作り直すため、回数も持つ）
+  const [celebration, setCelebration] = useState<{ effect: StampEffect; count: number } | null>(
     null,
   )
   const dismissCelebration = useCallback(() => setCelebration(null), [])
@@ -131,8 +131,8 @@ function App({
   const updateRecord = async (castleNumber: number, record: StampRecord) => {
     if (state.status !== 'ready') return
     const previous = getRecord(state.book, castleNumber)
-    const completion = completionByStamping(state.book, castleNumber, record)
-    if (completion) setCelebration((c) => ({ completion, count: (c?.count ?? 0) + 1 }))
+    const effect = effectByStamping(state.book, castleNumber, record)
+    if (effect) setCelebration((c) => ({ effect, count: (c?.count ?? 0) + 1 }))
     replaceRecord(castleNumber, record)
     setSaveFailed(false)
     try {
@@ -220,7 +220,7 @@ function App({
       {celebration && (
         <Celebration
           key={celebration.count}
-          completion={celebration.completion}
+          effect={celebration.effect}
           onDismiss={dismissCelebration}
         />
       )}
