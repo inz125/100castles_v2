@@ -1067,6 +1067,21 @@ textarea {
   }
 }
 
+/* 押印：小さな印をさっと押す（操作を邪魔しないよう背景は暗くせず、タップは下に通す） */
+.celebration--stamp {
+  background: none;
+  pointer-events: none;
+  animation-duration: 1.4s;
+}
+
+.celebration--stamp .celebration__name {
+  font-size: 16px;
+}
+
+.celebration--stamp .celebration__title {
+  font-size: 32px;
+}
+
 /* 100 城：大きな印を残し、桜を舞わせる */
 .celebration--all {
   align-content: center;

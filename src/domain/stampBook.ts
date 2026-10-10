@@ -99,3 +99,22 @@ export function completionByStamping(
     ? { kind: 'region', region: castle.region }
     : null
 }
+
+/** 押印したときの演出：制覇、または制覇に至らない通常の押印 */
+export type StampEffect = Completion | { kind: 'stamp'; castleName: string }
+
+/**
+ * 城の記録を next に変えたときに出す演出。未押印から押印済みにしたときだけ出す。
+ * 制覇が揃えばその演出、揃わなければその城の押印の演出。
+ */
+export function effectByStamping(
+  book: StampBook,
+  castleNumber: number,
+  next: StampRecord,
+): StampEffect | null {
+  if (isStamped(getRecord(book, castleNumber)) || !isStamped(next)) return null
+  const completion = completionByStamping(book, castleNumber, next)
+  if (completion) return completion
+  const castle = castles.find((c) => c.number === castleNumber)
+  return castle ? { kind: 'stamp', castleName: castle.name } : null
+}

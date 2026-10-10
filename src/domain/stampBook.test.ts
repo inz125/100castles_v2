@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { castles, REGIONS } from './castles'
 import {
   completionByStamping,
+  effectByStamping,
   filterCastles,
   filterGroups,
   getRecord,
@@ -199,5 +200,25 @@ describe('percentOf', () => {
 
   it('対象の城がなければ 0', () => {
     expect(percentOf({ stamped: 0, total: 0 })).toBe(0)
+  })
+})
+
+describe('effectByStamping', () => {
+  const stamped = { stampedOn: '2026-10-01', memo: '' } as const
+
+  it('未押印から押印済みにすると、その城の押印の演出', () => {
+    expect(effectByStamping({}, 59, stamped)).toEqual({ kind: 'stamp', castleName: '姫路城' })
+  })
+
+  it('制覇が揃うときは制覇の演出', () => {
+    const book: StampBook = Object.fromEntries(
+      castles.filter((c) => c.number !== 59).map((c) => [c.number, stamped]),
+    )
+    expect(effectByStamping(book, 59, stamped)).toEqual({ kind: 'all' })
+  })
+
+  it('もともと押印済み・押印済みでなくなるときは何もない', () => {
+    expect(effectByStamping({ 59: stamped }, 59, { stampedOn: '2026-09-01', memo: '' })).toBeNull()
+    expect(effectByStamping({ 59: stamped }, 59, { stampedOn: null, memo: '' })).toBeNull()
   })
 })

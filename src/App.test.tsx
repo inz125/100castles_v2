@@ -510,10 +510,18 @@ describe('App', () => {
         expect(await screen.findByRole('status')).toHaveTextContent('日本100名城制覇')
       })
 
-      it('まだ揃っていなければ表示しない', async () => {
+      it('まだ揃っていなければ、その城の「押印」の演出を表示する', async () => {
         renderApp(undefined, '/castles/59')
         await userEvent.click(await stampedCheckbox())
-        expect(await stampedCheckbox()).toBeChecked()
+        expect(await screen.findByRole('status')).toHaveTextContent('姫路城押印')
+      })
+
+      it('押印を外したときは表示しない', async () => {
+        const repository = new InMemoryStampBookRepository()
+        await repository.saveRecord(59, { stampedOn: '2026-01-01', memo: '' })
+        renderApp(repository, '/castles/59')
+        await userEvent.click(await stampedCheckbox())
+        expect(await stampedCheckbox()).not.toBeChecked()
         expect(screen.queryByRole('status')).toBeNull()
       })
 
