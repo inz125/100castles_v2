@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { castles } from '../domain/castles'
@@ -118,5 +118,38 @@ describe('CastleDetailPage のメモ', () => {
     fireEvent.blur(memo())
     expect(onChange).toHaveBeenCalledTimes(2)
     expect(onChange).toHaveBeenLastCalledWith({ stampedOn: null, memo: 'abc' })
+  })
+})
+
+describe('CastleDetailPage の近くの道の駅', () => {
+  const renderCastle = (name: string) =>
+    render(
+      <MemoryRouter>
+        <CastleDetailPage
+          castle={castles.find((c) => c.name === name)!}
+          record={{ stampedOn: null, memo: '' }}
+          today={() => '2026-09-30'}
+          onChange={vi.fn<(record: StampRecord) => void>()}
+        />
+      </MemoryRouter>,
+    )
+
+  it('周辺 20km 以内の道の駅を、近い順に距離つきで表示する', () => {
+    renderCastle('犬山城')
+    const section = screen.getByRole('region', { name: '近くの道の駅' })
+    const items = within(section).getAllByRole('listitem')
+    expect(items.length).toBeGreaterThan(0)
+    // 例：「道の駅 ○○」と「12km」のように、名前と距離が並ぶ
+    expect(items[0]).toHaveTextContent(/^道の駅 .+\d+(\.\d)?(km|m)$/)
+  })
+
+  it('対象地域の外の城では表示しない', () => {
+    renderCastle('首里城')
+    expect(screen.queryByRole('region', { name: '近くの道の駅' })).not.toBeInTheDocument()
+  })
+
+  it('近くに道の駅がない城では表示しない', () => {
+    renderCastle('姫路城')
+    expect(screen.queryByRole('region', { name: '近くの道の駅' })).not.toBeInTheDocument()
   })
 })

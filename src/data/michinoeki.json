@@ -1,0 +1,947 @@
+[
+  {
+    "id": 1,
+    "name": "豊根グリーンポート宮嶋",
+    "prefecture": "愛知県",
+    "latitude": 35.1793,
+    "longitude": 137.6825
+  },
+  {
+    "id": 2,
+    "name": "鳳来三河三石",
+    "prefecture": "愛知県",
+    "latitude": 34.9026,
+    "longitude": 137.6134
+  },
+  {
+    "id": 3,
+    "name": "田原めっくんはうす",
+    "prefecture": "愛知県",
+    "latitude": 34.6616,
+    "longitude": 137.2723
+  },
+  {
+    "id": 4,
+    "name": "伊良湖クリスタルポルト",
+    "prefecture": "愛知県",
+    "latitude": 34.5839,
+    "longitude": 137.0201
+  },
+  {
+    "id": 5,
+    "name": "つぐ高原グリーンパーク",
+    "prefecture": "愛知県",
+    "latitude": 35.1988,
+    "longitude": 137.6063
+  },
+  {
+    "id": 6,
+    "name": "どんぐりの里いなぶ",
+    "prefecture": "愛知県",
+    "latitude": 35.2139,
+    "longitude": 137.5029
+  },
+  {
+    "id": 7,
+    "name": "アグリステーションなぐら",
+    "prefecture": "愛知県",
+    "latitude": 35.1729,
+    "longitude": 137.5347
+  },
+  {
+    "id": 8,
+    "name": "デンパーク安城",
+    "prefecture": "愛知県",
+    "latitude": 34.9299,
+    "longitude": 137.0612
+  },
+  {
+    "id": 9,
+    "name": "つくで手作り村",
+    "prefecture": "愛知県",
+    "latitude": 34.9632,
+    "longitude": 137.4207
+  },
+  {
+    "id": 10,
+    "name": "ふれあいの里ＨＡＳＵパーク",
+    "prefecture": "愛知県",
+    "latitude": 35.1441,
+    "longitude": 136.6946
+  },
+  {
+    "id": 11,
+    "name": "あかばねロコステーション",
+    "prefecture": "愛知県",
+    "latitude": 34.6078,
+    "longitude": 137.1895
+  },
+  {
+    "id": 12,
+    "name": "筆柿の里・幸田",
+    "prefecture": "愛知県",
+    "latitude": 34.8485,
+    "longitude": 137.1383
+  },
+  {
+    "id": 13,
+    "name": "にしお岡ノ山",
+    "prefecture": "愛知県",
+    "latitude": 34.8768,
+    "longitude": 137.0831
+  },
+  {
+    "id": 14,
+    "name": "瀬戸しなの",
+    "prefecture": "愛知県",
+    "latitude": 35.2423,
+    "longitude": 137.1151
+  },
+  {
+    "id": 15,
+    "name": "藤川宿",
+    "prefecture": "愛知県",
+    "latitude": 34.9142,
+    "longitude": 137.217
+  },
+  {
+    "id": 16,
+    "name": "もっくる新城",
+    "prefecture": "愛知県",
+    "latitude": 34.9181,
+    "longitude": 137.5341
+  },
+  {
+    "id": 17,
+    "name": "とよはし",
+    "prefecture": "愛知県",
+    "latitude": 34.6962,
+    "longitude": 137.4148
+  },
+  {
+    "id": 18,
+    "name": "したら",
+    "prefecture": "愛知県",
+    "latitude": 35.0642,
+    "longitude": 137.5492
+  },
+  {
+    "id": 19,
+    "name": "マチテラス日進",
+    "prefecture": "愛知県",
+    "latitude": 35.1378,
+    "longitude": 137.0443
+  },
+  {
+    "id": 20,
+    "name": "美並",
+    "prefecture": "岐阜県",
+    "latitude": 35.609,
+    "longitude": 136.9432
+  },
+  {
+    "id": 21,
+    "name": "パスカル清見",
+    "prefecture": "岐阜県",
+    "latitude": 35.9404,
+    "longitude": 137.0826
+  },
+  {
+    "id": 22,
+    "name": "明宝",
+    "prefecture": "岐阜県",
+    "latitude": 35.8455,
+    "longitude": 137.0288
+  },
+  {
+    "id": 23,
+    "name": "花街道付知",
+    "prefecture": "岐阜県",
+    "latitude": 35.6426,
+    "longitude": 137.4415
+  },
+  {
+    "id": 24,
+    "name": "美濃白川",
+    "prefecture": "岐阜県",
+    "latitude": 35.6041,
+    "longitude": 137.174
+  },
+  {
+    "id": 25,
+    "name": "白鳥",
+    "prefecture": "岐阜県",
+    "latitude": 35.9235,
+    "longitude": 136.832
+  },
+  {
+    "id": 26,
+    "name": "奥飛騨温泉郷上宝",
+    "prefecture": "岐阜県",
+    "latitude": 36.2489,
+    "longitude": 137.4999
+  },
+  {
+    "id": 27,
+    "name": "賤母",
+    "prefecture": "岐阜県",
+    "latitude": 35.5861,
+    "longitude": 137.5504
+  },
+  {
+    "id": 28,
+    "name": "ロック・ガーデン ひちそう",
+    "prefecture": "岐阜県",
+    "latitude": 35.534,
+    "longitude": 137.1145
+  },
+  {
+    "id": 29,
+    "name": "星のふる里ふじはし",
+    "prefecture": "岐阜県",
+    "latitude": 35.5773,
+    "longitude": 136.4631
+  },
+  {
+    "id": 30,
+    "name": "白川郷",
+    "prefecture": "岐阜県",
+    "latitude": 36.2789,
+    "longitude": 136.9015
+  },
+  {
+    "id": 31,
+    "name": "平成",
+    "prefecture": "岐阜県",
+    "latitude": 35.5522,
+    "longitude": 136.9973
+  },
+  {
+    "id": 32,
+    "name": "アルプ飛騨古川",
+    "prefecture": "岐阜県",
+    "latitude": 36.2204,
+    "longitude": 137.1924
+  },
+  {
+    "id": 33,
+    "name": "上矢作ラ・フォーレ福寿の里",
+    "prefecture": "岐阜県",
+    "latitude": 35.3236,
+    "longitude": 137.4716
+  },
+  {
+    "id": 34,
+    "name": "モンデウス飛騨位山",
+    "prefecture": "岐阜県",
+    "latitude": 36.0619,
+    "longitude": 137.2265
+  },
+  {
+    "id": 35,
+    "name": "南飛騨小坂はなもも",
+    "prefecture": "岐阜県",
+    "latitude": 35.9315,
+    "longitude": 137.2944
+  },
+  {
+    "id": 36,
+    "name": "夢さんさん谷汲",
+    "prefecture": "岐阜県",
+    "latitude": 35.5312,
+    "longitude": 136.5864
+  },
+  {
+    "id": 37,
+    "name": "土岐美濃焼街道",
+    "prefecture": "岐阜県",
+    "latitude": 35.3361,
+    "longitude": 137.2233
+  },
+  {
+    "id": 38,
+    "name": "富有柿の里いとぬき",
+    "prefecture": "岐阜県",
+    "latitude": 35.4726,
+    "longitude": 136.676
+  },
+  {
+    "id": 39,
+    "name": "ななもり清見",
+    "prefecture": "岐阜県",
+    "latitude": 36.1339,
+    "longitude": 137.1665
+  },
+  {
+    "id": 40,
+    "name": "きりら坂下",
+    "prefecture": "岐阜県",
+    "latitude": 35.5704,
+    "longitude": 137.5346
+  },
+  {
+    "id": 41,
+    "name": "クレール平田",
+    "prefecture": "岐阜県",
+    "latitude": 35.2746,
+    "longitude": 136.6711
+  },
+  {
+    "id": 42,
+    "name": "馬瀬 美輝の里",
+    "prefecture": "岐阜県",
+    "latitude": 35.8199,
+    "longitude": 137.1874
+  },
+  {
+    "id": 43,
+    "name": "飛騨街道　なぎさ",
+    "prefecture": "岐阜県",
+    "latitude": 36.0068,
+    "longitude": 137.2917
+  },
+  {
+    "id": 44,
+    "name": "ひだ朝日村",
+    "prefecture": "岐阜県",
+    "latitude": 36.0879,
+    "longitude": 137.3508
+  },
+  {
+    "id": 45,
+    "name": "そばの郷らっせぃみさと",
+    "prefecture": "岐阜県",
+    "latitude": 35.4057,
+    "longitude": 137.3588
+  },
+  {
+    "id": 46,
+    "name": "織部の里もとす",
+    "prefecture": "岐阜県",
+    "latitude": 35.5001,
+    "longitude": 136.6672
+  },
+  {
+    "id": 47,
+    "name": "飛騨たかね工房",
+    "prefecture": "岐阜県",
+    "latitude": 36.0469,
+    "longitude": 137.4403
+  },
+  {
+    "id": 48,
+    "name": "大日岳",
+    "prefecture": "岐阜県",
+    "latitude": 35.9876,
+    "longitude": 136.8911
+  },
+  {
+    "id": 49,
+    "name": "桜の郷 荘川",
+    "prefecture": "岐阜県",
+    "latitude": 36.0213,
+    "longitude": 136.9656
+  },
+  {
+    "id": 50,
+    "name": "むげ川",
+    "prefecture": "岐阜県",
+    "latitude": 35.5152,
+    "longitude": 136.8542
+  },
+  {
+    "id": 51,
+    "name": "古今伝授の里やまと",
+    "prefecture": "岐阜県",
+    "latitude": 35.8162,
+    "longitude": 136.9016
+  },
+  {
+    "id": 52,
+    "name": "みのかも",
+    "prefecture": "岐阜県",
+    "latitude": 35.4737,
+    "longitude": 137.0305
+  },
+  {
+    "id": 53,
+    "name": "茶の里東白川",
+    "prefecture": "岐阜県",
+    "latitude": 35.6678,
+    "longitude": 137.3524
+  },
+  {
+    "id": 54,
+    "name": "和良",
+    "prefecture": "岐阜県",
+    "latitude": 35.7426,
+    "longitude": 137.0678
+  },
+  {
+    "id": 55,
+    "name": "うすずみ桜の里・ねお",
+    "prefecture": "岐阜県",
+    "latitude": 35.6601,
+    "longitude": 136.5892
+  },
+  {
+    "id": 56,
+    "name": "志野・織部",
+    "prefecture": "岐阜県",
+    "latitude": 35.3942,
+    "longitude": 137.1879
+  },
+  {
+    "id": 57,
+    "name": "加子母",
+    "prefecture": "岐阜県",
+    "latitude": 35.7088,
+    "longitude": 137.3748
+  },
+  {
+    "id": 58,
+    "name": "夜叉ヶ池の里さかうち",
+    "prefecture": "岐阜県",
+    "latitude": 35.6019,
+    "longitude": 136.4137
+  },
+  {
+    "id": 59,
+    "name": "おばあちゃん市・山岡",
+    "prefecture": "岐阜県",
+    "latitude": 35.3283,
+    "longitude": 137.3065
+  },
+  {
+    "id": 60,
+    "name": "月見の里南濃",
+    "prefecture": "岐阜県",
+    "latitude": 35.2149,
+    "longitude": 136.6008
+  },
+  {
+    "id": 61,
+    "name": "柳津",
+    "prefecture": "岐阜県",
+    "latitude": 35.3702,
+    "longitude": 136.7314
+  },
+  {
+    "id": 62,
+    "name": "五木のやかた・かわうえ",
+    "prefecture": "岐阜県",
+    "latitude": 35.6024,
+    "longitude": 137.5019
+  },
+  {
+    "id": 63,
+    "name": "宙ドーム・神岡",
+    "prefecture": "岐阜県",
+    "latitude": 36.3291,
+    "longitude": 137.3071
+  },
+  {
+    "id": 64,
+    "name": "白尾ふれあいパーク",
+    "prefecture": "岐阜県",
+    "latitude": 35.8896,
+    "longitude": 136.8918
+  },
+  {
+    "id": 65,
+    "name": "美濃にわか茶屋",
+    "prefecture": "岐阜県",
+    "latitude": 35.5547,
+    "longitude": 136.9138
+  },
+  {
+    "id": 66,
+    "name": "飛騨白山",
+    "prefecture": "岐阜県",
+    "latitude": 36.1739,
+    "longitude": 136.9016
+  },
+  {
+    "id": 67,
+    "name": "半布里の郷　とみか",
+    "prefecture": "岐阜県",
+    "latitude": 35.4743,
+    "longitude": 136.9802
+  },
+  {
+    "id": 68,
+    "name": "可児ッテ",
+    "prefecture": "岐阜県",
+    "latitude": 35.4301,
+    "longitude": 137.1012
+  },
+  {
+    "id": 69,
+    "name": "池田温泉",
+    "prefecture": "岐阜県",
+    "latitude": 35.4194,
+    "longitude": 136.5596
+  },
+  {
+    "id": 70,
+    "name": "清流白川 クオーレの里",
+    "prefecture": "岐阜県",
+    "latitude": 35.5955,
+    "longitude": 137.219
+  },
+  {
+    "id": 71,
+    "name": "清流の里しろとり",
+    "prefecture": "岐阜県",
+    "latitude": 35.8816,
+    "longitude": 136.8547
+  },
+  {
+    "id": 72,
+    "name": "パレットピアおおの",
+    "prefecture": "岐阜県",
+    "latitude": 35.432,
+    "longitude": 136.6284
+  },
+  {
+    "id": 73,
+    "name": "富士",
+    "prefecture": "静岡県",
+    "latitude": 35.1334,
+    "longitude": 138.6471
+  },
+  {
+    "id": 74,
+    "name": "くんま水車の里",
+    "prefecture": "静岡県",
+    "latitude": 34.9622,
+    "longitude": 137.7329
+  },
+  {
+    "id": 75,
+    "name": "花の三聖苑伊豆松崎",
+    "prefecture": "静岡県",
+    "latitude": 34.7578,
+    "longitude": 138.8254
+  },
+  {
+    "id": 76,
+    "name": "宇津ノ谷峠（静岡側）",
+    "prefecture": "静岡県",
+    "latitude": 34.937,
+    "longitude": 138.31
+  },
+  {
+    "id": 77,
+    "name": "宇津ノ谷峠（藤枝側）",
+    "prefecture": "静岡県",
+    "latitude": 34.925,
+    "longitude": 138.301
+  },
+  {
+    "id": 78,
+    "name": "いっぷく処横川",
+    "prefecture": "静岡県",
+    "latitude": 34.9055,
+    "longitude": 137.8721
+  },
+  {
+    "id": 79,
+    "name": "フォーレなかかわね茶茗舘",
+    "prefecture": "静岡県",
+    "latitude": 35.0705,
+    "longitude": 138.1078
+  },
+  {
+    "id": 80,
+    "name": "天城越え",
+    "prefecture": "静岡県",
+    "latitude": 34.8559,
+    "longitude": 138.9222
+  },
+  {
+    "id": 81,
+    "name": "奥大井音戯の郷",
+    "prefecture": "静岡県",
+    "latitude": 35.1071,
+    "longitude": 138.1362
+  },
+  {
+    "id": 82,
+    "name": "朝霧高原",
+    "prefecture": "静岡県",
+    "latitude": 35.4133,
+    "longitude": 138.5912
+  },
+  {
+    "id": 83,
+    "name": "川根温泉",
+    "prefecture": "静岡県",
+    "latitude": 34.9599,
+    "longitude": 138.0897
+  },
+  {
+    "id": 84,
+    "name": "富士川楽座",
+    "prefecture": "静岡県",
+    "latitude": 35.1619,
+    "longitude": 138.6185
+  },
+  {
+    "id": 85,
+    "name": "玉露の里",
+    "prefecture": "静岡県",
+    "latitude": 34.9507,
+    "longitude": 138.2517
+  },
+  {
+    "id": 86,
+    "name": "天竜相津　花桃の里",
+    "prefecture": "静岡県",
+    "latitude": 34.9119,
+    "longitude": 137.815
+  },
+  {
+    "id": 87,
+    "name": "伊東マリンタウン",
+    "prefecture": "静岡県",
+    "latitude": 34.9853,
+    "longitude": 139.0943
+  },
+  {
+    "id": 88,
+    "name": "開国下田みなと",
+    "prefecture": "静岡県",
+    "latitude": 34.6748,
+    "longitude": 138.9509
+  },
+  {
+    "id": 89,
+    "name": "掛川",
+    "prefecture": "静岡県",
+    "latitude": 34.7941,
+    "longitude": 138.0761
+  },
+  {
+    "id": 90,
+    "name": "ふじおやま",
+    "prefecture": "静岡県",
+    "latitude": 35.3445,
+    "longitude": 138.9501
+  },
+  {
+    "id": 91,
+    "name": "潮見坂",
+    "prefecture": "静岡県",
+    "latitude": 34.6772,
+    "longitude": 137.4993
+  },
+  {
+    "id": 92,
+    "name": "伊豆のへそ",
+    "prefecture": "静岡県",
+    "latitude": 35.0118,
+    "longitude": 138.9411
+  },
+  {
+    "id": 93,
+    "name": "下賀茂温泉　湯の花",
+    "prefecture": "静岡県",
+    "latitude": 34.6497,
+    "longitude": 138.8666
+  },
+  {
+    "id": 94,
+    "name": "すばしり",
+    "prefecture": "静岡県",
+    "latitude": 35.3627,
+    "longitude": 138.8587
+  },
+  {
+    "id": 95,
+    "name": "風のマルシェ御前崎",
+    "prefecture": "静岡県",
+    "latitude": 34.6407,
+    "longitude": 138.1107
+  },
+  {
+    "id": 96,
+    "name": "くるら戸田",
+    "prefecture": "静岡県",
+    "latitude": 34.9714,
+    "longitude": 138.7872
+  },
+  {
+    "id": 97,
+    "name": "伊豆ゲートウェイ函南",
+    "prefecture": "静岡県",
+    "latitude": 35.0759,
+    "longitude": 138.9256
+  },
+  {
+    "id": 98,
+    "name": "伊豆月ヶ瀬",
+    "prefecture": "静岡県",
+    "latitude": 34.9232,
+    "longitude": 138.9314
+  },
+  {
+    "id": 99,
+    "name": "そらっと牧之原",
+    "prefecture": "静岡県",
+    "latitude": 34.7771,
+    "longitude": 138.2127
+  },
+  {
+    "id": 100,
+    "name": "飯高駅",
+    "prefecture": "三重県",
+    "latitude": 34.4276,
+    "longitude": 136.332
+  },
+  {
+    "id": 101,
+    "name": "菰野",
+    "prefecture": "三重県",
+    "latitude": 35.0137,
+    "longitude": 136.5031
+  },
+  {
+    "id": 102,
+    "name": "紀宝町ウミガメ公園",
+    "prefecture": "三重県",
+    "latitude": 33.7698,
+    "longitude": 136.0285
+  },
+  {
+    "id": 103,
+    "name": "パーク七里御浜",
+    "prefecture": "三重県",
+    "latitude": 33.8036,
+    "longitude": 136.0431
+  },
+  {
+    "id": 104,
+    "name": "海山",
+    "prefecture": "三重県",
+    "latitude": 34.1023,
+    "longitude": 136.2141
+  },
+  {
+    "id": 105,
+    "name": "奥伊勢木つつ木館",
+    "prefecture": "三重県",
+    "latitude": 34.3676,
+    "longitude": 136.419
+  },
+  {
+    "id": 106,
+    "name": "熊野きのくに",
+    "prefecture": "三重県",
+    "latitude": 33.9599,
+    "longitude": 136.1043
+  },
+  {
+    "id": 107,
+    "name": "茶倉駅",
+    "prefecture": "三重県",
+    "latitude": 34.4604,
+    "longitude": 136.3982
+  },
+  {
+    "id": 108,
+    "name": "奥伊勢おおだい",
+    "prefecture": "三重県",
+    "latitude": 34.394,
+    "longitude": 136.4089
+  },
+  {
+    "id": 109,
+    "name": "美杉",
+    "prefecture": "三重県",
+    "latitude": 34.5116,
+    "longitude": 136.3068
+  },
+  {
+    "id": 110,
+    "name": "関宿",
+    "prefecture": "三重県",
+    "latitude": 34.8495,
+    "longitude": 136.3927
+  },
+  {
+    "id": 111,
+    "name": "伊勢志摩",
+    "prefecture": "三重県",
+    "latitude": 34.3596,
+    "longitude": 136.7982
+  },
+  {
+    "id": 112,
+    "name": "紀伊長島マンボウ",
+    "prefecture": "三重県",
+    "latitude": 34.2171,
+    "longitude": 136.3466
+  },
+  {
+    "id": 113,
+    "name": "あやま",
+    "prefecture": "三重県",
+    "latitude": 34.8446,
+    "longitude": 136.171
+  },
+  {
+    "id": 114,
+    "name": "いが",
+    "prefecture": "三重県",
+    "latitude": 34.8376,
+    "longitude": 136.2535
+  },
+  {
+    "id": 115,
+    "name": "津かわげ",
+    "prefecture": "三重県",
+    "latitude": 34.7965,
+    "longitude": 136.5176
+  },
+  {
+    "id": 116,
+    "name": "熊野・花の窟",
+    "prefecture": "三重県",
+    "latitude": 33.879,
+    "longitude": 136.0923
+  },
+  {
+    "id": 117,
+    "name": "熊野・板屋九郎兵衛の里",
+    "prefecture": "三重県",
+    "latitude": 33.8765,
+    "longitude": 135.9154
+  },
+  {
+    "id": 118,
+    "name": "日義木曽駒高原",
+    "prefecture": "長野県",
+    "latitude": 35.8664,
+    "longitude": 137.7401
+  },
+  {
+    "id": 119,
+    "name": "大桑",
+    "prefecture": "長野県",
+    "latitude": 35.682,
+    "longitude": 137.6535
+  },
+  {
+    "id": 120,
+    "name": "奈良井木曽の大橋",
+    "prefecture": "長野県",
+    "latitude": 35.9659,
+    "longitude": 137.8144
+  },
+  {
+    "id": 121,
+    "name": "信州平谷",
+    "prefecture": "長野県",
+    "latitude": 35.3244,
+    "longitude": 137.6318
+  },
+  {
+    "id": 122,
+    "name": "信濃路下條",
+    "prefecture": "長野県",
+    "latitude": 35.4172,
+    "longitude": 137.7947
+  },
+  {
+    "id": 123,
+    "name": "南アルプスむら長谷",
+    "prefecture": "長野県",
+    "latitude": 35.8098,
+    "longitude": 138.0837
+  },
+  {
+    "id": 124,
+    "name": "木曽ならかわ",
+    "prefecture": "長野県",
+    "latitude": 35.9862,
+    "longitude": 137.8425
+  },
+  {
+    "id": 125,
+    "name": "三岳",
+    "prefecture": "長野県",
+    "latitude": 35.8226,
+    "longitude": 137.648
+  },
+  {
+    "id": 126,
+    "name": "信州新野千石平",
+    "prefecture": "長野県",
+    "latitude": 35.2575,
+    "longitude": 137.7454
+  },
+  {
+    "id": 127,
+    "name": "花の里いいじま",
+    "prefecture": "長野県",
+    "latitude": 35.6618,
+    "longitude": 137.91
+  },
+  {
+    "id": 128,
+    "name": "遠山郷",
+    "prefecture": "長野県",
+    "latitude": 35.3213,
+    "longitude": 137.931
+  },
+  {
+    "id": 129,
+    "name": "木曽福島",
+    "prefecture": "長野県",
+    "latitude": 35.8171,
+    "longitude": 137.6824
+  },
+  {
+    "id": 130,
+    "name": "木曽川源流の里 きそむら",
+    "prefecture": "長野県",
+    "latitude": 35.9307,
+    "longitude": 137.7858
+  },
+  {
+    "id": 131,
+    "name": "田切の里",
+    "prefecture": "長野県",
+    "latitude": 35.6903,
+    "longitude": 137.9404
+  },
+  {
+    "id": 132,
+    "name": "南信州とよおかマルシェ",
+    "prefecture": "長野県",
+    "latitude": 35.5444,
+    "longitude": 137.8911
+  },
+  {
+    "id": 133,
+    "name": "大芝高原",
+    "prefecture": "長野県",
+    "latitude": 35.8878,
+    "longitude": 137.9431
+  },
+  {
+    "id": 134,
+    "name": "南信州うるぎ",
+    "prefecture": "長野県",
+    "latitude": 35.2739,
+    "longitude": 137.7097
+  },
+  {
+    "id": 135,
+    "name": "歌舞伎の里大鹿",
+    "prefecture": "長野県",
+    "latitude": 35.5651,
+    "longitude": 138.0371
+  }
+]

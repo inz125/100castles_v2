@@ -9,6 +9,7 @@ import {
   type StampRecord,
 } from '../domain/stampRecord'
 import { BackLink } from './castleLinks'
+import { NearbyMichinoeki } from './NearbyMichinoeki'
 import { StampMark } from './StampMark'
 
 type Props = {
@@ -66,6 +67,8 @@ export function CastleDetailPage({ castle, record, today, onChange }: Props) {
       <div className="card">
         <MemoField record={record} onChange={onChange} />
       </div>
+
+      <NearbyMichinoeki castle={castle} />
     </article>
   )
 }

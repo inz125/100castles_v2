@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { castles, type Castle } from '../domain/castles'
 import type { LatLng } from '../domain/distance'
+import { michinoeki, type Michinoeki } from '../domain/michinoeki'
 import { getRecord, type StampBook } from '../domain/stampBook'
 import { isStamped, type StampRecord } from '../domain/stampRecord'
 import type { LocationProvider } from '../location/locationProvider'
@@ -12,6 +13,7 @@ import { CastleLink } from './castleLinks'
 import { CastlePinIcon } from './CastlePinIcon'
 import { locationErrorMessage } from './locationMessages'
 import { loadMapView, saveMapView } from './mapViewPreference'
+import { loadMichinoekiVisible, saveMichinoekiVisible } from './michinoekiVisibilityPreference'
 
 /** OpenStreetMap の標準タイル（API キー不要。Google マップに近い配色） */
 const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -59,6 +61,16 @@ const pinIcon = (stamped: boolean) =>
     iconSize: [PIN_SIZE, PIN_SIZE],
   })
 
+/** 道の駅のピンのタップ領域（見た目の印は CSS でこれより小さく描く） */
+const STATION_PIN_SIZE = 40
+
+/** 道の駅のピン：道の駅の標識に似せた青い角丸の「道」 */
+const stationIcon = L.divIcon({
+  className: 'station-pin',
+  html: '<span aria-hidden="true">道</span>',
+  iconSize: [STATION_PIN_SIZE, STATION_PIN_SIZE],
+})
+
 /** 現在地の点（青）。タップしても何も起きない */
 const hereIcon = L.divIcon({ className: 'map-here', iconSize: [22, 22] })
 /** 「現在地へ移動」で最低限ここまで拡大する（市町村が見える程度） */
@@ -80,6 +92,10 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
   const [selected, setSelected] = useState<number | null>(null)
   // 吹き出しの中身は React で描き、Leaflet の吹き出しにはこの要素を渡す
   const [popupContent] = useState(() => document.createElement('div'))
+  // 道の駅のピンを出すか、吹き出しを開いている道の駅の番号
+  const [showStations, setShowStations] = useState(() => loadMichinoekiVisible(preferenceStorage))
+  const [selectedStationId, setSelectedStationId] = useState<number | null>(null)
+  const [stationPopupContent] = useState(() => document.createElement('div'))
   const [here, setHere] = useState<LatLng | null>(null)
   const [locating, setLocating] = useState(true)
   // 「現在地へ移動」で取得できなかった理由（開いたときの取得の失敗は表示しない）
@@ -165,6 +181,47 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
     }
   }, [book])
 
+  // 道の駅のピン（城のピンとは別。表示を切り替えられる）
+  useEffect(() => {
+    if (!showStations) return
+    const pins = L.layerGroup(
+      michinoeki.map((station) =>
+        L.marker([station.latitude, station.longitude], {
+          icon: stationIcon,
+          title: `道の駅 ${station.name}`,
+        }).on('click', () => setSelectedStationId(station.id)),
+      ),
+    ).addTo(mapRef.current!)
+    return () => {
+      pins.remove()
+    }
+  }, [showStations])
+
+  const toggleStations = () => {
+    const next = !showStations
+    setShowStations(next)
+    saveMichinoekiVisible(preferenceStorage, next)
+    // 隠す道の駅の吹き出しは閉じる
+    if (!next) setSelectedStationId(null)
+  }
+
+  // 中身を描いたあとで吹き出しを開く（道の駅）
+  useEffect(() => {
+    const station = michinoeki.find((s) => s.id === selectedStationId)
+    if (!station) return
+    const popup = L.popup({ offset: [0, -STATION_PIN_SIZE / 2 + 8] })
+      .setLatLng([station.latitude, station.longitude])
+      .setContent(stationPopupContent)
+      .openOn(mapRef.current!)
+    const onRemove = () =>
+      setSelectedStationId((current) => (current === station.id ? null : current))
+    popup.on('remove', onRemove)
+    return () => {
+      popup.off('remove', onRemove)
+      popup.remove()
+    }
+  }, [selectedStationId, stationPopupContent])
+
   // 中身を描いたあとで吹き出しを開く（開くときに中身の大きさで位置を決めるため）
   useEffect(() => {
     const castle = castles.find((c) => c.number === selected)
@@ -197,6 +254,7 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
   }, [here])
 
   const selectedCastle = castles.find((c) => c.number === selected)
+  const selectedStation = michinoeki.find((s) => s.id === selectedStationId)
 
   return (
     <section className="map-page">
@@ -207,6 +265,14 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
           {locationErrorMessage(moveError, MOVE_LABEL)}
         </p>
       )}
+      <button
+        type="button"
+        className="map-stations-button"
+        aria-pressed={showStations}
+        onClick={toggleStations}
+      >
+        道の駅
+      </button>
       <button
         type="button"
         className="map-here-button"
@@ -221,6 +287,8 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
           <CastlePopup castle={selectedCastle} record={getRecord(book, selectedCastle.number)} />,
           popupContent,
         )}
+      {selectedStation &&
+        createPortal(<StationPopup station={selectedStation} />, stationPopupContent)}
     </section>
   )
 }
@@ -236,6 +304,15 @@ function CastlePopup({ castle, record }: { castle: Castle; record: StampRecord }
       <CastleLink castleNumber={castle.number} className="map-popup__link">
         詳細を見る
       </CastleLink>
+    </div>
+  )
+}
+
+function StationPopup({ station }: { station: Michinoeki }) {
+  return (
+    <div role="dialog" aria-label={`道の駅 ${station.name}の情報`} className="map-popup">
+      <p className="map-popup__name">道の駅 {station.name}</p>
+      <p className="map-popup__status">{station.prefecture}</p>
     </div>
   )
 }
