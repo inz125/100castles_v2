@@ -247,6 +247,7 @@ describe('MapPage：道の駅', () => {
     renderPage()
     expect(stationPins()).toHaveLength(michinoeki.length)
     expect(stationPins()[0].title).toBe(`道の駅 ${michinoeki[0].name}`)
+    expect(stationPins().every((p) => p.querySelector('svg') !== null)).toBe(true)
     // 城のピンの数は変わらない
     expect(pins()).toHaveLength(100)
   })

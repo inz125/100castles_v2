@@ -11,6 +11,7 @@ import { isStamped, type StampRecord } from '../domain/stampRecord'
 import type { LocationProvider } from '../location/locationProvider'
 import { CastleLink } from './castleLinks'
 import { CastlePinIcon } from './CastlePinIcon'
+import { StationPinIcon } from './StationPinIcon'
 import { locationErrorMessage } from './locationMessages'
 import { loadMapView, saveMapView } from './mapViewPreference'
 import { loadMichinoekiVisible, saveMichinoekiVisible } from './michinoekiVisibilityPreference'
@@ -64,10 +65,10 @@ const pinIcon = (stamped: boolean) =>
 /** 道の駅のピンのタップ領域（見た目の印は CSS でこれより小さく描く） */
 const STATION_PIN_SIZE = 40
 
-/** 道の駅のピン：道の駅の標識に似せた青い角丸の「道」 */
+/** 道の駅のピン：道の駅の標識に似せた青い角丸の絵 */
 const stationIcon = L.divIcon({
   className: 'station-pin',
-  html: '<span aria-hidden="true">道</span>',
+  html: `<span>${renderToStaticMarkup(<StationPinIcon />)}</span>`,
   iconSize: [STATION_PIN_SIZE, STATION_PIN_SIZE],
 })
 
