@@ -1247,3 +1247,118 @@ textarea {
   -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
   mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
 }
+
+/* ===== 詳細：近くの道の駅 ===== */
+.michinoeki__heading {
+  margin: 12px 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.michinoeki__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.michinoeki__item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+
+.michinoeki__item:first-child {
+  border-top: 0;
+}
+
+.michinoeki__distance {
+  flex: none;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 地図：道の駅 ===== */
+/* 道の駅のピン：道の駅の標識に似せた青い角丸。城のピンより小さく、重なったときは城が手前に来る。
+   外側の枠は大きめに取り、印（span）だけがタップに反応するようにして、重なったピンを押し分けられるようにする */
+.leaflet-marker-icon.station-pin {
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.station-pin span {
+  position: relative;
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  line-height: 0;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 2px #fff,
+    0 1px 3px rgb(0 0 0 / 0.4);
+}
+
+.station-pin svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 見た目より広いタップ領域（小さく描いても指で押せるように） */
+.station-pin span::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  pointer-events: auto;
+}
+
+/* 縮小しているときは小さく描く（日本全体を見たとき潰れないように） */
+.map--pin-medium .station-pin span {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.map--pin-small .station-pin span {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+.map--pin-small .station-pin span::before {
+  inset: -6px;
+}
+
+/* 道の駅の表示を切り替えるボタン（現在地ボタンの上） */
+.map-stations-button {
+  position: absolute;
+  right: 12px;
+  bottom: calc(36px + var(--tap) + 10px);
+  z-index: 1000;
+  min-width: var(--tap);
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+  cursor: pointer;
+}
+
+.map-stations-button[aria-pressed='true'] {
+  background: #2323c9;
+  color: #fff;
+}
+
+.map-stations-button:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
+}

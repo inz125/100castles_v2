@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { castles } from '../domain/castles'
+import { michinoeki } from '../domain/michinoeki'
 import type { StampBook } from '../domain/stampBook'
 import type { LocationProvider, LocationResult } from '../location/locationProvider'
 import { MapPage } from './MapPage'
@@ -233,5 +234,53 @@ describe('MapPage：表示位置を覚える', () => {
     renderPage()
     // 開いたときの表示で上書きされていない＝前回の表示で開いている
     expect(loadMapView(localStorage)).toEqual(saved)
+  })
+})
+
+describe('MapPage：道の駅', () => {
+  const stationPins = () => [
+    ...document.querySelectorAll<HTMLElement>('.leaflet-marker-icon.station-pin'),
+  ]
+  const toggle = () => screen.getByRole('button', { name: '道の駅' })
+
+  it('対象の道の駅すべてにピンを立てる（駅名つき・城のピンとは別の見た目）', () => {
+    renderPage()
+    expect(stationPins()).toHaveLength(michinoeki.length)
+    expect(stationPins()[0].title).toBe(`道の駅 ${michinoeki[0].name}`)
+    expect(stationPins().every((p) => p.querySelector('svg') !== null)).toBe(true)
+    // 城のピンの数は変わらない
+    expect(pins()).toHaveLength(100)
+  })
+
+  it('ボタンで表示と非表示を切り替える', async () => {
+    renderPage()
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true')
+
+    await userEvent.click(toggle())
+    expect(stationPins()).toHaveLength(0)
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false')
+    expect(pins()).toHaveLength(100)
+
+    await userEvent.click(toggle())
+    expect(stationPins()).toHaveLength(michinoeki.length)
+  })
+
+  it('非表示にした設定を覚えておく', async () => {
+    const { unmount } = renderPage()
+    await userEvent.click(toggle())
+    unmount()
+
+    renderPage()
+    expect(stationPins()).toHaveLength(0)
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('ピンをタップすると吹き出しで駅名と都道府県を表示する', () => {
+    renderPage()
+    const station = michinoeki[0]
+    fireEvent.click(stationPins()[0])
+    const popup = screen.getByRole('dialog', { name: `道の駅 ${station.name}の情報` })
+    expect(popup).toHaveTextContent(`道の駅 ${station.name}`)
+    expect(popup).toHaveTextContent(station.prefecture)
   })
 })
