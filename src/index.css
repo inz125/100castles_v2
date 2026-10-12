@@ -1290,30 +1290,49 @@ textarea {
 }
 
 .station-pin span {
-  box-sizing: content-box;
+  position: relative;
   display: grid;
   place-items: center;
   width: 20px;
   height: 20px;
-  padding: 6px;
-  border: 0;
   border-radius: 5px;
-  background: #1b6ec2 content-box;
+  background: #1b6ec2;
   color: #fff;
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
-  pointer-events: auto;
+  pointer-events: none;
   box-shadow:
     0 0 0 2px #fff,
     0 1px 3px rgb(0 0 0 / 0.4);
 }
 
+/* 見た目より広いタップ領域（小さく描いても指で押せるように） */
+.station-pin span::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  pointer-events: auto;
+}
+
 /* 縮小しているときは小さく描く（日本全体を見たとき潰れないように） */
+.map--pin-medium .station-pin span {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
 .map--pin-small .station-pin span {
-  width: 10px;
-  height: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
   font-size: 0;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+.map--pin-small .station-pin span::before {
+  inset: -6px;
 }
 
 /* 道の駅の表示を切り替えるボタン（現在地ボタンの上） */

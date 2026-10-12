@@ -189,6 +189,8 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
         L.marker([station.latitude, station.longitude], {
           icon: stationIcon,
           title: `道の駅 ${station.name}`,
+          // 城のピンより奥に描く（重なったとき城が隠れないように）
+          zIndexOffset: -1000,
         }).on('click', () => setSelectedStationId(station.id)),
       ),
     ).addTo(mapRef.current!)
