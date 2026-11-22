@@ -150,3 +150,55 @@ describe('セキュリティルール：城ごとの記録', () => {
     await assertFails(deleteDoc(recordRef(code, '59')))
   })
 })
+
+const visitRef = (code: string, station: string) =>
+  doc(db, 'books', code, 'michinoekiVisits', station)
+
+describe('セキュリティルール：道の駅の訪問', () => {
+  it('アプリの使い方（保存・取り込み・読み込み）ができる', async () => {
+    const store = new FirestoreCloudBookStore(db)
+    const code = await createBook()
+    await assertSucceeds(store.importVisits(code, { 1: '2026-09-01' }))
+    await assertSucceeds(setDoc(visitRef(code, '3'), { visitedOn: '2026-10-01' }))
+    await assertSucceeds(setDoc(visitRef(code, '3'), { visitedOn: null }))
+    expect(await store.openVisits(code).load()).toEqual({ 1: '2026-09-01' })
+  })
+
+  it('記録帳がないコードには書けない', async () => {
+    await assertFails(setDoc(visitRef(generateShareCode(), '3'), { visitedOn: null }))
+  })
+
+  it('すべての記録帳の訪問をまとめて検索できない', async () => {
+    await createBook()
+    await assertFails(getDocs(collectionGroup(db, 'michinoekiVisits')))
+  })
+
+  it.each(['0', '01', '1000', 'abc'])(
+    '駅の番号が 1〜999 でなければ書けない（%s）',
+    async (station) => {
+      const code = await createBook()
+      await assertFails(setDoc(visitRef(code, station), { visitedOn: null }))
+    },
+  )
+
+  it.each(['1', '999'])('駅の番号 %s には書ける', async (station) => {
+    const code = await createBook()
+    await assertSucceeds(setDoc(visitRef(code, station), { visitedOn: null }))
+  })
+
+  it.each([
+    ['項目が足りない', {}],
+    ['余分な項目がある', { visitedOn: null, memo: '' }],
+    ['行った日が日付の形でない', { visitedOn: '2026/10/01' }],
+    ['行った日が文字列でない', { visitedOn: 20261001 }],
+  ])('%s 訪問は書けない', async (_, data) => {
+    const code = await createBook()
+    await assertFails(setDoc(visitRef(code, '3'), data))
+  })
+
+  it('訪問は上書きできるが削除はできない', async () => {
+    const code = await createBook()
+    await assertSucceeds(setDoc(visitRef(code, '3'), { visitedOn: '2026-10-01' }))
+    await assertFails(deleteDoc(visitRef(code, '3')))
+  })
+})

@@ -42,7 +42,7 @@ import { loadVisitFilter, saveVisitFilter } from './ui/visitFilterPreference'
 type Props = {
   /** 共有していないときに使う端末内の記録帳 */
   localRepository: StampBookRepository
-  /** 道の駅の訪問帳（端末内のみ。共有はしない） */
+  /** 共有していないときに使う端末内の道の駅の訪問帳 */
   michinoekiRepository: MichinoekiVisitRepository
   /** 共有中に使うクラウドの記録帳（Firebase をつなぐまでは未設定で、端末内の記録帳を使う） */
   cloud?: CloudBookStore
@@ -69,7 +69,6 @@ function App({
   const [filter, changeFilter] = useSavedFilter(preferenceStorage, LIST_FILTER)
   const [nearbyFilter, changeNearbyFilter] = useSavedFilter(preferenceStorage, NEARBY_FILTER)
   const [saveFailed, setSaveFailed] = useState(false)
-  const visitState = useMichinoekiVisits(michinoekiRepository, () => toLocalIsoDate(now()))
   const [visitFilter, setVisitFilter] = useState<VisitFilter>(() =>
     loadVisitFilter(preferenceStorage),
   )
@@ -94,16 +93,36 @@ function App({
     [shareCode, cloud],
   )
   const repository = cloudRepository ?? localRepository
+  // 道の駅の訪問帳も、共有中なら同じ共有コードのクラウドの訪問帳を使う
+  const cloudVisitRepository = useMemo(
+    () => (shareCode && cloud ? cloud.openVisits(shareCode) : null),
+    [shareCode, cloud],
+  )
+  const visitState = useMichinoekiVisits(cloudVisitRepository ?? michinoekiRepository, () =>
+    toLocalIsoDate(now()),
+  )
   // 共有中の同期の状態（共有していなければ null）
   const online = useOnline()
-  const [pendingWrites, setPendingWrites] = useState(false)
-  useEffect(() => cloudRepository?.subscribePendingWrites(setPendingWrites), [cloudRepository])
+  // 城の記録と道の駅の訪問のどちらかに送信待ちがあれば送信待ち
+  const [pendingRecords, setPendingRecords] = useState(false)
+  const [pendingVisits, setPendingVisits] = useState(false)
+  useEffect(() => cloudRepository?.subscribePendingWrites(setPendingRecords), [cloudRepository])
+  useEffect(
+    () => cloudVisitRepository?.subscribePendingWrites(setPendingVisits),
+    [cloudVisitRepository],
+  )
+  const pendingWrites = pendingRecords || pendingVisits
   const syncStatus = cloudRepository ? syncStatusOf({ online, pendingWrites }) : null
 
   /** 共有を始め、以降はクラウドの記録帳を使う */
   const startSharingHere = async () => {
     if (!cloud) throw new Error('クラウドが使えません')
-    const code = await startSharing({ local: localRepository, cloud, storage: preferenceStorage })
+    const code = await startSharing({
+      local: localRepository,
+      localVisits: michinoekiRepository,
+      cloud,
+      storage: preferenceStorage,
+    })
     setShareCode(code)
     return code
   }
@@ -111,7 +130,12 @@ function App({
   /** 共有に参加し、以降はクラウドの記録帳を使う */
   const joinSharingHere = async (input: string) => {
     if (!cloud) throw new Error('クラウドが使えません')
-    const result = await joinSharing({ input, cloud, storage: preferenceStorage })
+    const result = await joinSharing({
+      input,
+      cloud,
+      localVisits: michinoekiRepository,
+      storage: preferenceStorage,
+    })
     if (result.status === 'joined') setShareCode(result.code)
     return result
   }
@@ -283,6 +307,15 @@ function useMichinoekiVisits(repository: MichinoekiVisitRepository, today: () =>
       cancelled = true
     }
   }, [repository])
+
+  // もう 1 人の変更（と自分の保存）を画面に反映する。読み込めていないときは触らない
+  useEffect(
+    () =>
+      repository.subscribe((visits) =>
+        setState((s) => (s.status === 'ready' ? { status: 'ready', visits } : s)),
+      ),
+    [repository],
+  )
 
   const replaceVisit = (stationId: number, visitedOn: IsoDate | undefined) => {
     setState((s) => {

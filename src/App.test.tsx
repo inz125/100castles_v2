@@ -138,6 +138,40 @@ describe('App：共有中', () => {
     })
   })
 
+  describe('道の駅の訪問', () => {
+    const toyone = /豊根グリーンポート宮嶋/
+
+    it('端末内ではなくクラウドの訪問帳を表示する', async () => {
+      const cloud = await sharedCloud()
+      await cloud.openVisits(CODE).saveVisit(1, '2026-09-01')
+      const localVisits = new InMemoryMichinoekiVisitRepository()
+      await localVisits.saveVisit(2, '2026-09-02')
+      renderApp(undefined, '/michinoeki', pendingLocation, cloud, localVisits)
+
+      expect(await screen.findByRole('checkbox', { name: toyone })).toBeChecked()
+      expect(screen.getByRole('img', { name: /^全体 1\/135/ })).toBeInTheDocument()
+    })
+
+    it('変更はクラウドの訪問帳に保存し、端末内の訪問帳は変えない', async () => {
+      const cloud = await sharedCloud()
+      const localVisits = new InMemoryMichinoekiVisitRepository()
+      renderApp(undefined, '/michinoeki', pendingLocation, cloud, localVisits)
+      await userEvent.click(await screen.findByRole('checkbox', { name: toyone }))
+
+      expect(await cloud.openVisits(CODE).load()).toEqual({ 1: '2026-09-30' })
+      expect(await localVisits.load()).toEqual({})
+    })
+
+    it('もう 1 人の変更が、開き直さなくても画面に反映される', async () => {
+      const cloud = await sharedCloud()
+      renderApp(undefined, '/michinoeki', pendingLocation, cloud)
+      expect(await screen.findByRole('checkbox', { name: toyone })).not.toBeChecked()
+
+      await act(() => cloud.openVisits(CODE).saveVisit(1, '2026-09-01'))
+      expect(await screen.findByRole('checkbox', { name: toyone })).toBeChecked()
+    })
+  })
+
   it('もう 1 人の変更が、開き直さなくても画面に反映される', async () => {
     const cloud = await sharedCloud()
     renderApp(undefined, '/', pendingLocation, cloud)
@@ -277,6 +311,36 @@ describe('App', () => {
       await userEvent.click(screen.getByRole('checkbox', { name: '押印済み' }))
       await waitFor(async () => expect((await cloud.open(code).load())[100]?.stampedOn).toBeNull())
       expect(await local.load()).toEqual({ 59: { stampedOn: '2026-09-01', memo: '' } })
+    })
+
+    it('共有を始めると、端末の道の駅の訪問帳もクラウドに取り込む', async () => {
+      const localVisits = new InMemoryMichinoekiVisitRepository()
+      await localVisits.saveVisit(1, '2026-09-01')
+      const cloud = new InMemoryCloudBookStore()
+      renderApp(undefined, '/share', pendingLocation, cloud, localVisits)
+
+      await userEvent.click(await screen.findByRole('button', { name: '共有を始める' }))
+      const code = await waitFor(() => loadShareSettings(localStorage)!.code)
+      expect(await cloud.openVisits(code).load()).toEqual({ 1: '2026-09-01' })
+    })
+
+    it('共有に参加すると、端末の道の駅の訪問帳をクラウドに取り込む', async () => {
+      const code = 'ABCD2345EFGH' as ShareCode
+      const cloud = new InMemoryCloudBookStore()
+      await cloud.create(code, {})
+      const localVisits = new InMemoryMichinoekiVisitRepository()
+      await localVisits.saveVisit(1, '2026-09-01')
+      renderApp(undefined, '/share', pendingLocation, cloud, localVisits)
+
+      await userEvent.type(
+        await screen.findByRole('textbox', { name: '共有コード' }),
+        'abcd-2345-efgh',
+      )
+      await userEvent.click(screen.getByRole('button', { name: '参加する' }))
+
+      await waitFor(async () =>
+        expect(await cloud.openVisits(code).load()).toEqual({ 1: '2026-09-01' }),
+      )
     })
 
     it('共有コードで参加すると一覧に移り、共有の記録帳を表示する', async () => {
@@ -682,6 +746,7 @@ describe('App：道の駅タブ', () => {
     const repo: MichinoekiVisitRepository = {
       load: async () => ({}),
       saveVisit: () => Promise.reject(new Error('失敗')),
+      subscribe: () => () => {},
     }
     renderApp(undefined, '/michinoeki', pendingLocation, undefined, repo)
     await userEvent.click(await screen.findByRole('checkbox', { name: /豊根グリーンポート宮嶋/ }))
@@ -694,6 +759,7 @@ describe('App：道の駅タブ', () => {
     const repo: MichinoekiVisitRepository = {
       load: () => Promise.reject(new UnsupportedVersionError(2)),
       saveVisit: async () => {},
+      subscribe: () => () => {},
     }
     renderApp(undefined, '/michinoeki', pendingLocation, undefined, repo)
     expect(await screen.findByRole('alert')).toHaveTextContent('アプリを更新してください')

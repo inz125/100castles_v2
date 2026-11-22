@@ -1,5 +1,7 @@
 import type { ShareCode } from '../domain/shareCode'
+import type { VisitBook } from '../domain/michinoekiVisits'
 import type { StampBook } from '../domain/stampBook'
+import type { MichinoekiVisitRepository } from '../repository/michinoekiVisitRepository'
 import type { StampBookRepository } from '../repository/stampBookRepository'
 
 /** クラウドにある共有の記録帳の窓口（Firebase の実装はこの裏に隠す） */
@@ -10,16 +12,29 @@ export interface CloudBookStore {
   exists(code: ShareCode): Promise<boolean>
   /** 共有コードの記録帳を開く */
   open(code: ShareCode): CloudBookRepository
+  /** 共有コードの記録帳の、道の駅の訪問帳を開く */
+  openVisits(code: ShareCode): CloudVisitRepository
+  /**
+   * 端末の訪問帳を共有の訪問帳に取り込む。クラウドにまだ記録がない駅だけを入れる
+   * （行っていないことにした駅も含め、記録がある駅は変えない）
+   */
+  importVisits(code: ShareCode, visits: VisitBook): Promise<void>
 }
 
-/** クラウドの記録帳。端末内の記録帳と同じ使い方に加え、送信待ちの変更があるかを知らせる */
-export interface CloudBookRepository extends StampBookRepository {
+/** 送信待ちの変更があるかを、変わるたびに知らせる */
+type PendingWritesSource = {
   /**
    * まだクラウドに届いていない変更があるか（電波がないときに保存した変更など）を、変わるたびに知らせる。
    * 戻り値の関数で購読をやめる
    */
   subscribePendingWrites(listener: (pending: boolean) => void): () => void
 }
+
+/** クラウドの記録帳。端末内の記録帳と同じ使い方に加え、送信待ちの変更があるかを知らせる */
+export interface CloudBookRepository extends StampBookRepository, PendingWritesSource {}
+
+/** クラウドの訪問帳。端末内の訪問帳と同じ使い方に加え、送信待ちの変更があるかを知らせる */
+export interface CloudVisitRepository extends MichinoekiVisitRepository, PendingWritesSource {}
 
 /** 作ろうとした共有コードの記録帳がすでにあった */
 export class BookAlreadyExistsError extends Error {

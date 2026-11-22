@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { generateShareCode } from '../domain/shareCode'
+import type { VisitBook } from '../domain/michinoekiVisits'
 import type { StampBook } from '../domain/stampBook'
+import { describeMichinoekiVisitRepositoryContract } from '../repository/michinoekiVisitRepository.contract'
 import { describeStampBookRepositoryContract } from '../repository/stampBookRepository.contract'
 import { BookAlreadyExistsError, type CloudBookStore } from './cloudBookStore'
 
@@ -69,6 +71,69 @@ export function describeCloudBookStoreContract(name: string, createStore: () => 
 
       await book.saveRecord(59, { stampedOn: '2026-09-30', memo: '' })
       await vi.waitFor(() => expect(listener).toHaveBeenLastCalledWith(false))
+    })
+
+    describe('道の駅の訪問帳', () => {
+      it('作ったばかりの記録帳の訪問帳は空', async () => {
+        const store = createStore()
+        const code = generateShareCode()
+        await store.create(code, {})
+        expect(await store.openVisits(code).load()).toEqual({})
+      })
+
+      it('同じコードで開いた 2 台の端末は、互いの変更を受け取る', async () => {
+        const store = createStore()
+        const code = generateShareCode()
+        await store.create(code, {})
+        const mine = store.openVisits(code)
+        const listener = vi.fn<(visits: VisitBook) => void>()
+        mine.subscribe(listener)
+
+        await store.openVisits(code).saveVisit(3, '2026-10-01')
+        await vi.waitFor(() => expect(listener).toHaveBeenLastCalledWith({ 3: '2026-10-01' }))
+        expect(await mine.load()).toEqual({ 3: '2026-10-01' })
+      })
+
+      it('訪問帳と城の記録は混ざらない', async () => {
+        const store = createStore()
+        const code = generateShareCode()
+        await store.create(code, { 3: { stampedOn: '2026-09-30', memo: '' } })
+        await store.openVisits(code).saveVisit(59, '2026-10-01')
+        expect(await store.open(code).load()).toEqual({ 3: { stampedOn: '2026-09-30', memo: '' } })
+        expect(await store.openVisits(code).load()).toEqual({ 59: '2026-10-01' })
+      })
+
+      it('取り込むと、クラウドにまだ記録がない駅だけに端末の行った日が入る', async () => {
+        const store = createStore()
+        const code = generateShareCode()
+        await store.create(code, {})
+        const visits = store.openVisits(code)
+        await visits.saveVisit(2, '2026-09-01')
+        // もう 1 人が行っていないことにした駅
+        await visits.saveVisit(3, '2026-09-02')
+        await visits.saveVisit(3, null)
+
+        await store.importVisits(code, { 1: '2026-10-01', 2: '2026-10-02', 3: '2026-10-03' })
+        expect(await visits.load()).toEqual({ 1: '2026-10-01', 2: '2026-09-01' })
+      })
+
+      it('保存した変更がクラウドに届くと、送信待ちはなくなる', async () => {
+        const store = createStore()
+        const code = generateShareCode()
+        await store.create(code, {})
+        const visits = store.openVisits(code)
+        const listener = vi.fn<(pending: boolean) => void>()
+        visits.subscribePendingWrites(listener)
+
+        await visits.saveVisit(3, '2026-10-01')
+        await vi.waitFor(() => expect(listener).toHaveBeenLastCalledWith(false))
+      })
+
+      // 開いた訪問帳は、端末内の訪問帳と同じ契約を満たす（テストごとに新しいコードで開く）
+      const visitStore = createStore()
+      describeMichinoekiVisitRepositoryContract(`${name} で開いた訪問帳`, () =>
+        visitStore.openVisits(generateShareCode()),
+      )
     })
 
     // 開いた記録帳は、端末内の記録帳と同じ契約を満たす（テストごとに新しいコードで開く）

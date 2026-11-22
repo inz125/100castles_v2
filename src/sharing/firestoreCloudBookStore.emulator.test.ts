@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { generateShareCode } from '../domain/shareCode'
+import type { VisitBook } from '../domain/michinoekiVisits'
 import type { StampBook } from '../domain/stampBook'
 import { UnsupportedVersionError } from '../repository/stampBookRepository'
 import { describeCloudBookStoreContract } from './cloudBookStore.contract'
@@ -120,5 +121,48 @@ describe('FirestoreCloudBookStore：保存されているデータ', () => {
     await expect(new FirestoreCloudBookStore(db).open(code).load()).rejects.toThrow(
       UnsupportedVersionError,
     )
+  })
+})
+
+describe('FirestoreCloudBookStore：道の駅の訪問', () => {
+  it('別の端末（別のアプリ）の変更を受け取る', async () => {
+    const code = generateShareCode()
+    const mine = new FirestoreCloudBookStore(connectDevice())
+    const theirs = new FirestoreCloudBookStore(connectDevice())
+    await mine.create(code, {})
+    const listener = vi.fn<(visits: VisitBook) => void>()
+    mine.openVisits(code).subscribe(listener)
+
+    await theirs.openVisits(code).saveVisit(3, '2026-10-01')
+    await vi.waitFor(() => expect(listener).toHaveBeenLastCalledWith({ 3: '2026-10-01' }))
+  })
+
+  it('行っていないことにした駅は削除せず null で残す', async () => {
+    const code = generateShareCode()
+    const store = new FirestoreCloudBookStore(connectDevice())
+    await store.create(code, {})
+    const visits = store.openVisits(code)
+    await visits.saveVisit(3, '2026-10-01')
+    await visits.saveVisit(3, null)
+    await vi.waitFor(async () => expect(await visits.load()).toEqual({}))
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const saved = await context.firestore().doc(`books/${code}/michinoekiVisits/3`).get()
+      expect(saved.data()).toEqual({ visitedOn: null })
+    })
+  })
+
+  it('訪問の形になっていないものは読み飛ばす', async () => {
+    const code = generateShareCode()
+    const store = new FirestoreCloudBookStore(connectDevice())
+    await store.create(code, {})
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const admin = context.firestore()
+      await admin.doc(`books/${code}/michinoekiVisits/1`).set({ visitedOn: 'yesterday' })
+      await admin.doc(`books/${code}/michinoekiVisits/abc`).set({ visitedOn: '2026-10-01' })
+      await admin.doc(`books/${code}/michinoekiVisits/2`).set({ visitedOn: '2026-10-01' })
+    })
+
+    expect(await store.openVisits(code).load()).toEqual({ 2: '2026-10-01' })
   })
 })

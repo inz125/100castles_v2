@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ShareCode } from '../domain/shareCode'
+import { InMemoryMichinoekiVisitRepository } from '../repository/inMemoryMichinoekiVisitRepository'
 import { InMemoryStampBookRepository } from '../repository/inMemoryStampBookRepository'
 import { InMemoryCloudBookStore } from './inMemoryCloudBookStore'
 import { loadShareSettings } from './shareSettings'
@@ -108,5 +109,40 @@ describe('startSharing', () => {
       }),
     ).rejects.toThrow('offline')
     expect(loadShareSettings(localStorage)).toBeNull()
+  })
+
+  describe('道の駅の訪問帳', () => {
+    it('端末の訪問帳を共有の訪問帳に取り込み、端末内の訪問帳は残す', async () => {
+      const localVisits = new InMemoryMichinoekiVisitRepository()
+      await localVisits.saveVisit(3, '2026-10-01')
+      const cloud = new InMemoryCloudBookStore()
+
+      await startSharing({
+        local: new InMemoryStampBookRepository(),
+        localVisits,
+        cloud,
+        storage: localStorage,
+        generateCode: codesInOrder(CODE_A),
+      })
+
+      expect(await cloud.openVisits(CODE_A).load()).toEqual({ 3: '2026-10-01' })
+      expect(await localVisits.load()).toEqual({ 3: '2026-10-01' })
+    })
+
+    it('取り込めなければ失敗し、共有の設定は保存しない', async () => {
+      const cloud = new InMemoryCloudBookStore()
+      cloud.importVisits = () => Promise.reject(new Error('offline'))
+
+      await expect(
+        startSharing({
+          local: new InMemoryStampBookRepository(),
+          localVisits: new InMemoryMichinoekiVisitRepository(),
+          cloud,
+          storage: localStorage,
+          generateCode: codesInOrder(CODE_A),
+        }),
+      ).rejects.toThrow('offline')
+      expect(loadShareSettings(localStorage)).toBeNull()
+    })
   })
 })

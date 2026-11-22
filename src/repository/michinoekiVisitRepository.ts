@@ -9,4 +9,9 @@ export interface MichinoekiVisitRepository {
   load(): Promise<VisitBook>
   /** 行った日を保存する。null なら行っていないことにする */
   saveVisit(stationId: number, visitedOn: IsoDate | null): Promise<void>
+  /**
+   * 訪問帳が変わるたびに（自分の保存も、共有しているもう 1 人の保存も）新しい訪問帳で呼ぶ。
+   * 変わっていなくても呼ばれることがある。戻り値の関数で購読をやめる
+   */
+  subscribe(listener: (visits: VisitBook) => void): () => void
 }

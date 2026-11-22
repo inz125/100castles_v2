@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ShareCode } from '../domain/shareCode'
+import { InMemoryMichinoekiVisitRepository } from '../repository/inMemoryMichinoekiVisitRepository'
 import { InMemoryCloudBookStore } from './inMemoryCloudBookStore'
 import { joinSharing } from './joinSharing'
 import { loadShareSettings } from './shareSettings'
@@ -50,5 +51,30 @@ describe('joinSharing', () => {
       joinSharing({ input: 'ABCD-2345-EFGH', cloud, storage: localStorage }),
     ).rejects.toThrow('offline')
     expect(loadShareSettings(localStorage)).toBeNull()
+  })
+
+  it('端末の訪問帳のうち、クラウドにまだ記録がない駅だけを取り込む', async () => {
+    const cloud = new InMemoryCloudBookStore()
+    await cloud.create(CODE, {})
+    await cloud.openVisits(CODE).saveVisit(2, '2026-09-01')
+    const localVisits = new InMemoryMichinoekiVisitRepository()
+    await localVisits.saveVisit(1, '2026-10-01')
+    await localVisits.saveVisit(2, '2026-10-02')
+
+    await joinSharing({ input: 'ABCD-2345-EFGH', cloud, localVisits, storage: localStorage })
+
+    expect(await cloud.openVisits(CODE).load()).toEqual({ 1: '2026-10-01', 2: '2026-09-01' })
+  })
+
+  it('コードの記録帳がなければ訪問帳は取り込まない', async () => {
+    const cloud = new InMemoryCloudBookStore()
+    const importVisits = vi.spyOn(cloud, 'importVisits')
+    await joinSharing({
+      input: 'ABCD-2345-EFGH',
+      cloud,
+      localVisits: new InMemoryMichinoekiVisitRepository(),
+      storage: localStorage,
+    })
+    expect(importVisits).not.toHaveBeenCalled()
   })
 })
