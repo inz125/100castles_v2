@@ -37,6 +37,18 @@ const TABS = [
       </>
     ),
   },
+  {
+    to: '/michinoeki',
+    label: '道の駅',
+    // 道の駅の標識（木と家）
+    icon: (
+      <>
+        <path d="M7 4c2 2.5 2 8 1.6 12H5.4C5 12 5 6.5 7 4z" />
+        <path d="M12 12.5 16 9l4 3.5M13 11.6V16M19 11.6V16" />
+        <path d="M3 16h18v3H3z" />
+      </>
+    ),
+  },
 ] as const satisfies readonly { to: string; label: string; icon: ReactNode }[]
 
 /**
