@@ -7,6 +7,7 @@ import {
   isVisited,
   MICHINOEKI_PREFECTURES,
   visitProgressOf,
+  visitsToImport,
   type VisitBook,
 } from './michinoekiVisits'
 
@@ -64,5 +65,17 @@ describe('道の駅の訪問', () => {
     const visits: VisitBook = Object.fromEntries(idsIn('長野県').map((id) => [id, '2026-10-01']))
     expect(completedPrefectureCount(groupByPrefecture(visits))).toBe(1)
     expect(completedPrefectureCount(groupByPrefecture({}))).toBe(0)
+  })
+})
+
+describe('訪問帳の取り込み', () => {
+  it('クラウドにまだ記録がない駅だけを取り込む', () => {
+    const local: VisitBook = { 1: '2026-10-01', 2: '2026-10-02', 3: '2026-10-03' }
+    // 2 は行ったことになっている駅、3 はもう 1 人が行っていないことにした駅
+    expect(visitsToImport(local, new Set([2, 3]))).toEqual({ 1: '2026-10-01' })
+  })
+
+  it('端末に記録がなければ何も取り込まない', () => {
+    expect(visitsToImport({}, new Set())).toEqual({})
   })
 })

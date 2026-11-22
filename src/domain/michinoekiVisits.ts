@@ -67,3 +67,14 @@ export function filterPrefectureGroups(
 export function completedPrefectureCount(groups: readonly PrefectureGroup[]): number {
   return groups.filter((g) => isCompleted(g.progress)).length
 }
+
+/**
+ * 端末の訪問帳のうち、共有の訪問帳に取り込む分。
+ * クラウドにまだ記録がない駅だけを返す（行っていないことにした駅も含め、記録がある駅は変えない。
+ * もう 1 人が外したチェックを古い記録で戻さないため）
+ */
+export function visitsToImport(local: VisitBook, cloudStationIds: ReadonlySet<number>): VisitBook {
+  return Object.fromEntries(
+    Object.entries(local).filter(([id]) => !cloudStationIds.has(Number(id))),
+  ) as VisitBook
+}

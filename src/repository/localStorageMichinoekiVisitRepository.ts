@@ -1,5 +1,6 @@
 import type { VisitBook } from '../domain/michinoekiVisits'
 import { isIsoDate, type IsoDate } from '../domain/stampRecord'
+import { BookListeners } from './bookListeners'
 import type { MichinoekiVisitRepository } from './michinoekiVisitRepository'
 import { UnsupportedVersionError } from './stampBookRepository'
 
@@ -21,6 +22,7 @@ type StoredData = {
 export class LocalStorageMichinoekiVisitRepository implements MichinoekiVisitRepository {
   private readonly storage: Storage
   private readonly now: () => number
+  private readonly listeners = new BookListeners<VisitBook>()
 
   constructor(storage: Storage = localStorage, now: () => number = Date.now) {
     this.storage = storage
@@ -36,6 +38,11 @@ export class LocalStorageMichinoekiVisitRepository implements MichinoekiVisitRep
     if (visitedOn === null) delete visits[stationId]
     else visits[stationId] = visitedOn
     this.write(visits)
+    this.listeners.notify(visits)
+  }
+
+  subscribe(listener: (visits: VisitBook) => void): () => void {
+    return this.listeners.add(listener)
   }
 
   private read(): Visits {
