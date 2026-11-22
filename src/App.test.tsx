@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, type InitialEntry } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,6 +13,8 @@ import type { CloudBookStore } from './sharing/cloudBookStore'
 import { InMemoryCloudBookStore } from './sharing/inMemoryCloudBookStore'
 import { loadShareSettings, saveShareSettings } from './sharing/shareSettings'
 import { LIST_FILTER, NEARBY_FILTER } from './ui/filterPreference'
+import type { AppUpdater } from './update/AppUpdater'
+import { FakeAppUpdater } from './update/FakeAppUpdater'
 
 function failingRepository(error: unknown): StampBookRepository {
   return {
@@ -39,6 +41,7 @@ function renderApp(
   locationProvider: LocationProvider = pendingLocation,
   cloud: CloudBookStore = new InMemoryCloudBookStore(),
   michinoekiRepository: MichinoekiVisitRepository = new InMemoryMichinoekiVisitRepository(),
+  updater: AppUpdater = new FakeAppUpdater(),
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
@@ -49,6 +52,7 @@ function renderApp(
         preferenceStorage={localStorage}
         locationProvider={locationProvider}
         now={() => NOW}
+        updater={updater}
       />
     </MemoryRouter>,
   )
@@ -717,8 +721,65 @@ describe('App：道の駅タブ', () => {
     await screen.findByRole('img', { name: /^全体 0\/100/ })
     const tabBar = screen.getByRole('navigation', { name: 'タブ' })
     await userEvent.click(within(tabBar).getByRole('link', { name: '道の駅' }))
-    expect(screen.getByRole('heading', { level: 2, name: '道の駅' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: '道の駅' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^全体 0\/135/ })).toBeInTheDocument()
+  })
+
+  describe('画面の一番上（D-67）', () => {
+    const appTitle = () => screen.queryByRole('heading', { name: '100名城スタンプ帳' })
+
+    it('道の駅タブではアプリ名を出さず、一番上の見出しは「道の駅」', async () => {
+      renderApp(undefined, '/michinoeki')
+      const heading = await screen.findByRole('heading', { level: 1, name: '道の駅' })
+      expect(appTitle()).toBeNull()
+      expect(screen.getAllByRole('heading', { level: 1 })).toEqual([heading])
+      expect(screen.getByText('中部「道の駅」スタンプブックの駅')).toBeInTheDocument()
+    })
+
+    it.each(['/', '/nearby', '/map', '/castles/59', '/share'])(
+      'ほかの画面（%s）では今までどおりアプリ名を出す',
+      async (path) => {
+        renderApp(undefined, path)
+        expect(
+          await screen.findByRole('heading', { level: 1, name: '100名城スタンプ帳' }),
+        ).toBeInTheDocument()
+      },
+    )
+
+    it('訪問帳の読み込み中・失敗のときもアプリ名を出さない', async () => {
+      const loading: MichinoekiVisitRepository = {
+        load: () => new Promise(() => {}),
+        saveVisit: async () => {},
+        subscribe: () => () => {},
+      }
+      renderApp(undefined, '/michinoeki', pendingLocation, undefined, loading)
+      // 先に出る城の記録帳の「読み込み中…」が消え、訪問帳の読み込み待ちになるまで待つ
+      await act(async () => {})
+      expect(screen.getByText('読み込み中…')).toBeInTheDocument()
+      expect(appTitle()).toBeNull()
+
+      cleanup()
+      const failing: MichinoekiVisitRepository = {
+        load: () => Promise.reject(new UnsupportedVersionError(2)),
+        saveVisit: async () => {},
+        subscribe: () => () => {},
+      }
+      renderApp(undefined, '/michinoeki', pendingLocation, undefined, failing)
+      expect(await screen.findByRole('alert')).toHaveTextContent('アプリを更新してください')
+      expect(appTitle()).toBeNull()
+    })
+
+    it('タブを切り替えると、アプリ名が出たり消えたりする', async () => {
+      renderApp()
+      await screen.findByRole('img', { name: /^全体 0\/100/ })
+      const tab = (name: string) =>
+        within(screen.getByRole('navigation', { name: 'タブ' })).getByRole('link', { name })
+      await userEvent.click(tab('道の駅'))
+      await screen.findByRole('heading', { level: 1, name: '道の駅' })
+      expect(appTitle()).toBeNull()
+      await userEvent.click(tab('近く'))
+      expect(appTitle()).toBeInTheDocument()
+    })
   })
 
   it('行った駅にチェックすると今日の日付で保存し、制覇率に反映する', async () => {
@@ -769,5 +830,75 @@ describe('App：道の駅タブ', () => {
     renderApp(undefined, '/michinoeki')
     await userEvent.click(await screen.findByRole('button', { name: '未訪問' }))
     expect(localStorage.getItem('castles100.michinoekiFilter')).toBe('unvisited')
+  })
+})
+
+describe('App：開いたままの更新（D-08）', () => {
+  const popup = () => screen.queryByRole('alertdialog', { name: '新しいバージョンがあります' })
+
+  /** 画面を出して、新しい版が見つかったことにする */
+  async function findNewVersion(updater: FakeAppUpdater) {
+    act(() => updater.findNewVersion())
+    return screen.findByRole('alertdialog', { name: '新しいバージョンがあります' })
+  }
+
+  it('新しい版が見つかるまでは何も出さない', async () => {
+    renderApp()
+    await screen.findByRole('img', { name: /^全体 0\/100/ })
+    expect(popup()).toBeNull()
+  })
+
+  it('見つかったらポップアップを出し、「更新」で新しい版に切り替える', async () => {
+    const updater = new FakeAppUpdater()
+    renderApp(undefined, '/', pendingLocation, undefined, undefined, updater)
+    await screen.findByRole('img', { name: /^全体 0\/100/ })
+    const dialog = await findNewVersion(updater)
+
+    await userEvent.click(within(dialog).getByRole('button', { name: '更新' }))
+    await waitFor(() => expect(updater.apply).toHaveBeenCalledTimes(1))
+  })
+
+  it('「あとで」で閉じ、新しい版には切り替えない', async () => {
+    const updater = new FakeAppUpdater()
+    renderApp(undefined, '/', pendingLocation, undefined, undefined, updater)
+    await screen.findByRole('img', { name: /^全体 0\/100/ })
+    const dialog = await findNewVersion(updater)
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'あとで' }))
+    expect(popup()).toBeNull()
+    expect(updater.apply).not.toHaveBeenCalled()
+  })
+
+  it.each(['/map', '/michinoeki', '/castles/59'])('どの画面（%s）でも出る', async (path) => {
+    const updater = new FakeAppUpdater()
+    renderApp(undefined, path, pendingLocation, undefined, undefined, updater)
+    await screen.findByRole('navigation', { name: 'タブ' })
+    expect(await findNewVersion(updater)).toBeInTheDocument()
+  })
+
+  it('書きかけのメモは、保存が終わってから新しい版に切り替える', async () => {
+    const saved = new InMemoryStampBookRepository()
+    let finishSave = () => {}
+    // 保存がすぐには終わらない記録帳（クラウドへの書き込みなど）
+    const slow: StampBookRepository = {
+      load: () => saved.load(),
+      subscribe: (listener) => saved.subscribe(listener),
+      saveRecord: (castleNumber, record) =>
+        new Promise<void>((resolve) => {
+          finishSave = () => void saved.saveRecord(castleNumber, record).then(resolve)
+        }),
+    }
+    const updater = new FakeAppUpdater()
+    renderApp(slow, '/castles/59', pendingLocation, undefined, undefined, updater)
+    await userEvent.type(await screen.findByRole('textbox', { name: 'メモ' }), '白鷺城')
+    const dialog = await findNewVersion(updater)
+
+    // 「更新」を押すとメモ欄から離れて保存が始まる。保存が終わるまでは切り替えない
+    await userEvent.click(within(dialog).getByRole('button', { name: '更新' }))
+    expect(updater.apply).not.toHaveBeenCalled()
+
+    await act(async () => finishSave())
+    await waitFor(() => expect(updater.apply).toHaveBeenCalledTimes(1))
+    expect(await saved.load()).toEqual({ 59: { stampedOn: null, memo: '白鷺城' } })
   })
 })

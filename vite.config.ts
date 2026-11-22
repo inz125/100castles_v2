@@ -13,8 +13,8 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // 新しい版を公開したら、次に開いたときに自動で更新する
-      registerType: 'autoUpdate',
+      // 新しい版は自動では切り替えず、ポップアップの「更新」で切り替える（D-08）
+      registerType: 'prompt',
       manifest: {
         name: '100名城スタンプ帳',
         short_name: '100名城',
