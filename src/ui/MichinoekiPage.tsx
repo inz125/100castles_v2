@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { formatSlashDate } from '../domain/dates'
 import { michinoeki, type Michinoeki } from '../domain/michinoeki'
 import {
   completedPrefectureCount,
@@ -217,7 +218,7 @@ function StationRow({
       <StationPinIcon className="station-row__icon" />
       <span className="station-row__body">
         <span className="station-row__name">{station.name}</span>
-        {visited && <span className="station-row__date">{formatVisitDate(visitedOn)} 訪問</span>}
+        {visited && <span className="station-row__date">{formatSlashDate(visitedOn)} 訪問</span>}
       </span>
       <input
         type="checkbox"
@@ -236,9 +237,4 @@ function ratioOf({ stamped, total }: Progress): number {
 
 function progressLabel(name: string, progress: Progress): string {
   return `${name} ${progress.stamped}/${progress.total}（${percentOf(progress)}%）${isCompleted(progress) ? '制覇' : ''}`
-}
-
-/** 2026-10-01 → 2026/10/01 */
-function formatVisitDate(date: IsoDate): string {
-  return date.replaceAll('-', '/')
 }

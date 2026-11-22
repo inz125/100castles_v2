@@ -5,9 +5,12 @@ import { createPortal } from 'react-dom'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { castles, type Castle } from '../domain/castles'
 import type { LatLng } from '../domain/distance'
+import { formatSlashDate } from '../domain/dates'
 import { michinoeki, type Michinoeki } from '../domain/michinoeki'
+import type { VisitBook } from '../domain/michinoekiVisits'
 import { getRecord, type StampBook } from '../domain/stampBook'
 import { isStamped, type StampRecord } from '../domain/stampRecord'
+import type { IsoDate } from '../domain/stampRecord'
 import type { LocationProvider } from '../location/locationProvider'
 import { CastleLink } from './castleLinks'
 import { CastlePinIcon } from './CastlePinIcon'
@@ -65,12 +68,23 @@ const pinIcon = (stamped: boolean) =>
 /** 道の駅のピンのタップ領域（見た目の印は CSS でこれより小さく描く） */
 const STATION_PIN_SIZE = 40
 
-/** 道の駅のピン：道の駅の標識に似せた青い角丸の絵 */
-const stationIcon = L.divIcon({
-  className: 'station-pin',
-  html: `<span>${renderToStaticMarkup(<StationPinIcon />)}</span>`,
-  iconSize: [STATION_PIN_SIZE, STATION_PIN_SIZE],
-})
+const STATION_PIN_HTML = renderToStaticMarkup(<StationPinIcon />)
+
+/**
+ * 道の駅のピン：道の駅の標識に似せた青い角丸の絵（D-47）。
+ * 行った駅は朱色のチェックを重ね、行っていない駅は CSS で灰色に薄く描く
+ */
+const stationIcon = (visited: boolean) =>
+  L.divIcon({
+    className: `station-pin ${visited ? 'station-pin--visited' : 'station-pin--unvisited'}`,
+    html: `<span>${STATION_PIN_HTML}${visited ? '<i class="station-pin__check"></i>' : ''}</span>`,
+    iconSize: [STATION_PIN_SIZE, STATION_PIN_SIZE],
+  })
+const visitedStationIcon = stationIcon(true)
+const unvisitedStationIcon = stationIcon(false)
+
+/** 訪問帳がまだない（読み込み中・読み込めない）ときは、すべて行っていないとみなす */
+const NO_VISITS: VisitBook = {}
 
 /** 現在地の点（青）。タップしても何も起きない */
 const hereIcon = L.divIcon({ className: 'map-here', iconSize: [22, 22] })
@@ -80,13 +94,15 @@ const MOVE_LABEL = '現在地へ移動'
 
 type Props = {
   book: StampBook
+  /** 道の駅の訪問帳。読み込み中・読み込めないときは undefined（すべて行っていない見た目） */
+  visits?: VisitBook
   locationProvider: LocationProvider
   /** 表示位置と拡大率を覚えておく先 */
   preferenceStorage: Storage
 }
 
 /** 地図タブ：100 城すべてをピンで表示する（絞り込みなし） */
-export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
+export function MapPage({ book, visits = NO_VISITS, locationProvider, preferenceStorage }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   // 吹き出しを開いている城の番号
@@ -182,13 +198,13 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
     }
   }, [book])
 
-  // 道の駅のピン（城のピンとは別。表示を切り替えられる）
+  // 道の駅のピン（城のピンとは別。表示を切り替えられる）。訪問帳が変わったら立て直す
   useEffect(() => {
     if (!showStations) return
     const pins = L.layerGroup(
       michinoeki.map((station) =>
         L.marker([station.latitude, station.longitude], {
-          icon: stationIcon,
+          icon: visits[station.id] ? visitedStationIcon : unvisitedStationIcon,
           title: `道の駅 ${station.name}`,
           // 城のピンより奥に描く（重なったとき城が隠れないように）
           zIndexOffset: -1000,
@@ -198,7 +214,7 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
     return () => {
       pins.remove()
     }
-  }, [showStations])
+  }, [showStations, visits])
 
   const toggleStations = () => {
     const next = !showStations
@@ -291,7 +307,10 @@ export function MapPage({ book, locationProvider, preferenceStorage }: Props) {
           popupContent,
         )}
       {selectedStation &&
-        createPortal(<StationPopup station={selectedStation} />, stationPopupContent)}
+        createPortal(
+          <StationPopup station={selectedStation} visitedOn={visits[selectedStation.id]} />,
+          stationPopupContent,
+        )}
     </section>
   )
 }
@@ -311,11 +330,14 @@ function CastlePopup({ castle, record }: { castle: Castle; record: StampRecord }
   )
 }
 
-function StationPopup({ station }: { station: Michinoeki }) {
+function StationPopup({ station, visitedOn }: { station: Michinoeki; visitedOn?: IsoDate }) {
   return (
     <div role="dialog" aria-label={`道の駅 ${station.name}の情報`} className="map-popup">
       <p className="map-popup__name">道の駅 {station.name}</p>
       <p className="map-popup__status">{station.prefecture}</p>
+      <p className="map-popup__status">
+        {visitedOn ? `${formatSlashDate(visitedOn)} 訪問` : '未訪問'}
+      </p>
     </div>
   )
 }

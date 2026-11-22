@@ -1316,6 +1316,37 @@ textarea {
   pointer-events: auto;
 }
 
+/* 行っていない駅（D-47）：色を抜いて灰色に、少し薄く描く（地図の上で見えなくならない濃さ） */
+.station-pin--unvisited svg {
+  border-radius: inherit;
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+/* 行った駅（D-47）：右上に朱色の丸いチェックを重ねる */
+.station-pin__check {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--vermilion);
+  box-shadow: 0 0 0 1.5px #fff;
+}
+
+.station-pin__check::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 4.5px;
+  width: 3px;
+  height: 6px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
 /* 縮小しているときは小さく描く（日本全体を見たとき潰れないように） */
 .map--pin-medium .station-pin span {
   width: 18px;
@@ -1332,6 +1363,35 @@ textarea {
 
 .map--pin-small .station-pin span::before {
   inset: -6px;
+}
+
+/* 小さく描くときもチェックで見分けられるように、チェックも小さくする */
+.map--pin-medium .station-pin__check {
+  top: -5px;
+  right: -5px;
+  width: 10px;
+  height: 10px;
+}
+
+.map--pin-medium .station-pin__check::after {
+  top: 2px;
+  left: 3.2px;
+  width: 2px;
+  height: 4px;
+  border-width: 0 1.2px 1.2px 0;
+}
+
+.map--pin-small .station-pin__check {
+  top: -3px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+/* 一番小さいときは点だけにする（チェックの線は描けないため） */
+.map--pin-small .station-pin__check::after {
+  display: none;
 }
 
 /* 道の駅の表示を切り替えるボタン（現在地ボタンの上） */

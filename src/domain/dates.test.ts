@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toLocalIsoDate } from './dates'
+import { formatSlashDate, toLocalIsoDate } from './dates'
 
 describe('toLocalIsoDate', () => {
   it('端末の時刻（ローカル時刻）での日付を YYYY-MM-DD で返す', () => {
@@ -13,5 +13,11 @@ describe('toLocalIsoDate', () => {
 
   it('月・日を 2 桁にそろえる', () => {
     expect(toLocalIsoDate(new Date(2026, 0, 5))).toBe('2026-01-05')
+  })
+})
+
+describe('formatSlashDate', () => {
+  it('YYYY-MM-DD を YYYY/MM/DD で表す', () => {
+    expect(formatSlashDate('2026-10-01')).toBe('2026/10/01')
   })
 })

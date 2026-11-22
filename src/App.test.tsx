@@ -145,6 +145,20 @@ describe('App：共有中', () => {
   describe('道の駅の訪問', () => {
     const toyone = /豊根グリーンポート宮嶋/
 
+    const toyoneStationPin = () =>
+      [...document.querySelectorAll<HTMLElement>('.station-pin')].find(
+        (p) => p.title === '道の駅 豊根グリーンポート宮嶋',
+      )
+
+    it('道の駅のピンで行った／行っていないを見分け、もう 1 人の変更も開き直さずに反映する（D-47）', async () => {
+      const cloud = await sharedCloud()
+      renderApp(undefined, '/map', pendingLocation, cloud)
+      await waitFor(() => expect(toyoneStationPin()).toHaveClass('station-pin--unvisited'))
+
+      await act(() => cloud.openVisits(CODE).saveVisit(1, '2026-09-01'))
+      await waitFor(() => expect(toyoneStationPin()).toHaveClass('station-pin--visited'))
+    })
+
     it('端末内ではなくクラウドの訪問帳を表示する', async () => {
       const cloud = await sharedCloud()
       await cloud.openVisits(CODE).saveVisit(1, '2026-09-01')
@@ -389,6 +403,22 @@ describe('App', () => {
 
       await userEvent.click(screen.getByRole('link', { name: '地図に戻る' }))
       expect(await screen.findByRole('region', { name: '城の地図' })).toBeInTheDocument()
+    })
+
+    const toyonePin = () =>
+      [...document.querySelectorAll<HTMLElement>('.station-pin')].find(
+        (p) => p.title === '道の駅 豊根グリーンポート宮嶋',
+      )
+
+    it('訪問帳を読み込み中でも地図と城のピンは使え、道の駅は行っていない見た目（D-47）', async () => {
+      const loading: MichinoekiVisitRepository = {
+        load: () => new Promise(() => {}),
+        saveVisit: async () => {},
+        subscribe: () => () => {},
+      }
+      renderApp(undefined, '/map', pendingLocation, undefined, loading)
+      await waitFor(() => expect(toyonePin()).toHaveClass('station-pin--unvisited'))
+      expect(document.querySelectorAll('.map-pin')).toHaveLength(100)
     })
   })
 

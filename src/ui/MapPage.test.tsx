@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { castles } from '../domain/castles'
 import { michinoeki } from '../domain/michinoeki'
+import type { VisitBook } from '../domain/michinoekiVisits'
 import type { StampBook } from '../domain/stampBook'
 import type { LocationProvider, LocationResult } from '../location/locationProvider'
 import { MapPage } from './MapPage'
@@ -12,12 +13,21 @@ import { loadMapView, saveMapView } from './mapViewPreference'
 /** 現在地の取得が終わらない窓口 */
 const pendingLocation: LocationProvider = { getCurrentPosition: () => new Promise(() => {}) }
 
-function renderPage(book: StampBook = {}, locationProvider = pendingLocation) {
-  return render(
+function page(book: StampBook, locationProvider: LocationProvider, visits?: VisitBook) {
+  return (
     <MemoryRouter initialEntries={['/map']}>
-      <MapPage book={book} locationProvider={locationProvider} preferenceStorage={localStorage} />
-    </MemoryRouter>,
+      <MapPage
+        book={book}
+        visits={visits}
+        locationProvider={locationProvider}
+        preferenceStorage={localStorage}
+      />
+    </MemoryRouter>
   )
+}
+
+function renderPage(book: StampBook = {}, locationProvider = pendingLocation, visits?: VisitBook) {
+  return render(page(book, locationProvider, visits))
 }
 
 beforeEach(() => {
@@ -282,5 +292,73 @@ describe('MapPage：道の駅', () => {
     const popup = screen.getByRole('dialog', { name: `道の駅 ${station.name}の情報` })
     expect(popup).toHaveTextContent(`道の駅 ${station.name}`)
     expect(popup).toHaveTextContent(station.prefecture)
+  })
+
+  describe('行った／行っていない（D-47）', () => {
+    const [a, b] = michinoeki
+    const pinOfStation = (id: number) =>
+      stationPins().find((p) => p.title === `道の駅 ${michinoeki.find((s) => s.id === id)!.name}`)!
+    const isVisitedPin = (p: HTMLElement) =>
+      p.classList.contains('station-pin--visited') &&
+      !p.classList.contains('station-pin--unvisited')
+    const isUnvisitedPin = (p: HTMLElement) =>
+      p.classList.contains('station-pin--unvisited') &&
+      !p.classList.contains('station-pin--visited')
+
+    it('行った駅は行った見た目、行っていない駅は行っていない見た目のピン', () => {
+      renderPage({}, pendingLocation, { [a.id]: '2026-10-01' })
+      expect(isVisitedPin(pinOfStation(a.id))).toBe(true)
+      expect(isUnvisitedPin(pinOfStation(b.id))).toBe(true)
+      expect(stationPins().filter(isVisitedPin)).toHaveLength(1)
+    })
+
+    it('行った駅には朱色のチェックの印を重ねる', () => {
+      renderPage({}, pendingLocation, { [a.id]: '2026-10-01' })
+      expect(pinOfStation(a.id).querySelector('.station-pin__check')).not.toBeNull()
+      expect(pinOfStation(b.id).querySelector('.station-pin__check')).toBeNull()
+    })
+
+    it('吹き出しに行った日か未訪問を出す', () => {
+      renderPage({}, pendingLocation, { [a.id]: '2026-10-01' })
+      fireEvent.click(pinOfStation(a.id))
+      const popupA = screen.getByRole('dialog', { name: `道の駅 ${a.name}の情報` })
+      expect(popupA).toHaveTextContent(a.prefecture)
+      expect(popupA).toHaveTextContent('2026/10/01 訪問')
+
+      fireEvent.click(pinOfStation(b.id))
+      const popupB = screen.getByRole('dialog', { name: `道の駅 ${b.name}の情報` })
+      expect(popupB).toHaveTextContent('未訪問')
+      expect(popupB).not.toHaveTextContent('2026/10/01')
+    })
+
+    it('訪問帳が変わると開き直さなくてもピンと開いている吹き出しが変わる', () => {
+      const { rerender } = renderPage({}, pendingLocation, {})
+      fireEvent.click(pinOfStation(b.id))
+      expect(screen.getByRole('dialog', { name: `道の駅 ${b.name}の情報` })).toHaveTextContent(
+        '未訪問',
+      )
+
+      rerender(page({}, pendingLocation, { [b.id]: '2026-11-03' }))
+      expect(isVisitedPin(pinOfStation(b.id))).toBe(true)
+      expect(screen.getByRole('dialog', { name: `道の駅 ${b.name}の情報` })).toHaveTextContent(
+        '2026/11/03 訪問',
+      )
+    })
+
+    it('訪問帳がない（読み込み中・読み込めない）ときはすべて行っていない見た目', () => {
+      renderPage()
+      expect(stationPins()).toHaveLength(michinoeki.length)
+      expect(stationPins().every(isUnvisitedPin)).toBe(true)
+      fireEvent.click(pinOfStation(a.id))
+      expect(screen.getByRole('dialog', { name: `道の駅 ${a.name}の情報` })).toHaveTextContent(
+        '未訪問',
+      )
+    })
+
+    it('非表示にすると訪問に関係なくピンを出さない', async () => {
+      renderPage({}, pendingLocation, { [a.id]: '2026-10-01' })
+      await userEvent.click(toggle())
+      expect(stationPins()).toHaveLength(0)
+    })
   })
 })
