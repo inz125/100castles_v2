@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useMatch, useParams } from 'react-router'
 import { castles } from './domain/castles'
 import { toLocalIsoDate } from './domain/dates'
@@ -36,6 +36,9 @@ import { NearbyPage } from './ui/NearbyPage'
 import { SharePage } from './ui/SharePage'
 import { SyncStatusText } from './ui/SyncStatusText'
 import { TabBar } from './ui/TabBar'
+import { UpdatePrompt } from './ui/UpdatePrompt'
+import type { AppUpdater } from './update/AppUpdater'
+import { useAppUpdate } from './update/useAppUpdate'
 import { useOnline } from './ui/useOnline'
 import { loadVisitFilter, saveVisitFilter } from './ui/visitFilterPreference'
 
@@ -52,6 +55,8 @@ type Props = {
   locationProvider: LocationProvider
   /** 現在時刻（テストで日付を固定するため差し替えられるようにしている） */
   now?: () => Date
+  /** 新しい版の確認と反映（D-08） */
+  updater: AppUpdater
 }
 
 type LoadState =
@@ -64,7 +69,15 @@ function App({
   preferenceStorage,
   locationProvider,
   now = () => new Date(),
+  updater,
 }: Props) {
+  // 保存中の変更。新しい版に切り替える前に、保存が終わるのを待つ（D-08）
+  const pendingSaves = usePendingSaves()
+  const update = useAppUpdate(updater)
+  const applyUpdate = async () => {
+    await pendingSaves.settled()
+    update.apply()
+  }
   const [state, setState] = useState<LoadState>({ status: 'loading' })
   const [filter, changeFilter] = useSavedFilter(preferenceStorage, LIST_FILTER)
   const [nearbyFilter, changeNearbyFilter] = useSavedFilter(preferenceStorage, NEARBY_FILTER)
@@ -100,8 +113,10 @@ function App({
     () => (shareCode && cloud ? cloud.openVisits(shareCode) : null),
     [shareCode, cloud],
   )
-  const visitState = useMichinoekiVisits(cloudVisitRepository ?? michinoekiRepository, () =>
-    toLocalIsoDate(now()),
+  const visitState = useMichinoekiVisits(
+    cloudVisitRepository ?? michinoekiRepository,
+    () => toLocalIsoDate(now()),
+    pendingSaves.track,
   )
   // 共有中の同期の状態（共有していなければ null）
   const online = useOnline()
@@ -177,7 +192,7 @@ function App({
     replaceRecord(castleNumber, record)
     setSaveFailed(false)
     try {
-      await repository.saveRecord(castleNumber, record)
+      await pendingSaves.track(repository.saveRecord(castleNumber, record))
     } catch {
       replaceRecord(castleNumber, previous)
       setSaveFailed(true)
@@ -277,6 +292,7 @@ function App({
         </Routes>
       )}
       <TabBar />
+      {update.prompt && <UpdatePrompt onUpdate={() => void applyUpdate()} onLater={update.later} />}
       {celebration && (
         <Celebration
           key={celebration.count}
@@ -297,7 +313,11 @@ type VisitLoadState =
  * 道の駅の訪問帳を読み込み、行った／行っていないの切り替えを保存する。
  * 画面にはすぐ反映し、保存に失敗したら元に戻す（城の記録と同じ考え方）
  */
-function useMichinoekiVisits(repository: MichinoekiVisitRepository, today: () => IsoDate) {
+function useMichinoekiVisits(
+  repository: MichinoekiVisitRepository,
+  today: () => IsoDate,
+  track: <T>(save: Promise<T>) => Promise<T>,
+) {
   const [state, setState] = useState<VisitLoadState>({ status: 'loading' })
   const [saveFailed, setSaveFailed] = useState(false)
 
@@ -338,7 +358,7 @@ function useMichinoekiVisits(repository: MichinoekiVisitRepository, today: () =>
     replaceVisit(stationId, next)
     setSaveFailed(false)
     try {
-      await repository.saveVisit(stationId, next ?? null)
+      await track(repository.saveVisit(stationId, next ?? null))
     } catch {
       replaceVisit(stationId, previous)
       setSaveFailed(true)
@@ -346,6 +366,27 @@ function useMichinoekiVisits(repository: MichinoekiVisitRepository, today: () =>
   }
 
   return { ...state, saveFailed, changeVisit }
+}
+
+/** 保存中の変更を覚えておき、すべて終わるのを待てるようにする */
+function usePendingSaves() {
+  const pending = useRef(new Set<Promise<unknown>>())
+  return useMemo(
+    () => ({
+      /** 保存を覚えておき、そのまま返す */
+      track: <T,>(save: Promise<T>): Promise<T> => {
+        pending.current.add(save)
+        const forget = () => pending.current.delete(save)
+        save.then(forget, forget)
+        return save
+      },
+      /** 今ある保存がすべて終わる（失敗も含む）のを待つ */
+      settled: async () => {
+        await Promise.allSettled(pending.current)
+      },
+    }),
+    [],
+  )
 }
 
 /** 絞り込みの選択。変えるたびに保存し、次回も使う */

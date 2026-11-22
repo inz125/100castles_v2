@@ -13,6 +13,8 @@ import type { CloudBookStore } from './sharing/cloudBookStore'
 import { InMemoryCloudBookStore } from './sharing/inMemoryCloudBookStore'
 import { loadShareSettings, saveShareSettings } from './sharing/shareSettings'
 import { LIST_FILTER, NEARBY_FILTER } from './ui/filterPreference'
+import type { AppUpdater } from './update/AppUpdater'
+import { FakeAppUpdater } from './update/FakeAppUpdater'
 
 function failingRepository(error: unknown): StampBookRepository {
   return {
@@ -39,6 +41,7 @@ function renderApp(
   locationProvider: LocationProvider = pendingLocation,
   cloud: CloudBookStore = new InMemoryCloudBookStore(),
   michinoekiRepository: MichinoekiVisitRepository = new InMemoryMichinoekiVisitRepository(),
+  updater: AppUpdater = new FakeAppUpdater(),
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
@@ -49,6 +52,7 @@ function renderApp(
         preferenceStorage={localStorage}
         locationProvider={locationProvider}
         now={() => NOW}
+        updater={updater}
       />
     </MemoryRouter>,
   )
@@ -826,5 +830,75 @@ describe('App：道の駅タブ', () => {
     renderApp(undefined, '/michinoeki')
     await userEvent.click(await screen.findByRole('button', { name: '未訪問' }))
     expect(localStorage.getItem('castles100.michinoekiFilter')).toBe('unvisited')
+  })
+})
+
+describe('App：開いたままの更新（D-08）', () => {
+  const popup = () => screen.queryByRole('alertdialog', { name: '新しいバージョンがあります' })
+
+  /** 画面を出して、新しい版が見つかったことにする */
+  async function findNewVersion(updater: FakeAppUpdater) {
+    act(() => updater.findNewVersion())
+    return screen.findByRole('alertdialog', { name: '新しいバージョンがあります' })
+  }
+
+  it('新しい版が見つかるまでは何も出さない', async () => {
+    renderApp()
+    await screen.findByRole('img', { name: /^全体 0\/100/ })
+    expect(popup()).toBeNull()
+  })
+
+  it('見つかったらポップアップを出し、「更新」で新しい版に切り替える', async () => {
+    const updater = new FakeAppUpdater()
+    renderApp(undefined, '/', pendingLocation, undefined, undefined, updater)
+    await screen.findByRole('img', { name: /^全体 0\/100/ })
+    const dialog = await findNewVersion(updater)
+
+    await userEvent.click(within(dialog).getByRole('button', { name: '更新' }))
+    await waitFor(() => expect(updater.apply).toHaveBeenCalledTimes(1))
+  })
+
+  it('「あとで」で閉じ、新しい版には切り替えない', async () => {
+    const updater = new FakeAppUpdater()
+    renderApp(undefined, '/', pendingLocation, undefined, undefined, updater)
+    await screen.findByRole('img', { name: /^全体 0\/100/ })
+    const dialog = await findNewVersion(updater)
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'あとで' }))
+    expect(popup()).toBeNull()
+    expect(updater.apply).not.toHaveBeenCalled()
+  })
+
+  it.each(['/map', '/michinoeki', '/castles/59'])('どの画面（%s）でも出る', async (path) => {
+    const updater = new FakeAppUpdater()
+    renderApp(undefined, path, pendingLocation, undefined, undefined, updater)
+    await screen.findByRole('navigation', { name: 'タブ' })
+    expect(await findNewVersion(updater)).toBeInTheDocument()
+  })
+
+  it('書きかけのメモは、保存が終わってから新しい版に切り替える', async () => {
+    const saved = new InMemoryStampBookRepository()
+    let finishSave = () => {}
+    // 保存がすぐには終わらない記録帳（クラウドへの書き込みなど）
+    const slow: StampBookRepository = {
+      load: () => saved.load(),
+      subscribe: (listener) => saved.subscribe(listener),
+      saveRecord: (castleNumber, record) =>
+        new Promise<void>((resolve) => {
+          finishSave = () => void saved.saveRecord(castleNumber, record).then(resolve)
+        }),
+    }
+    const updater = new FakeAppUpdater()
+    renderApp(slow, '/castles/59', pendingLocation, undefined, undefined, updater)
+    await userEvent.type(await screen.findByRole('textbox', { name: 'メモ' }), '白鷺城')
+    const dialog = await findNewVersion(updater)
+
+    // 「更新」を押すとメモ欄から離れて保存が始まる。保存が終わるまでは切り替えない
+    await userEvent.click(within(dialog).getByRole('button', { name: '更新' }))
+    expect(updater.apply).not.toHaveBeenCalled()
+
+    await act(async () => finishSave())
+    await waitFor(() => expect(updater.apply).toHaveBeenCalledTimes(1))
+    expect(await saved.load()).toEqual({ 59: { stampedOn: null, memo: '白鷺城' } })
   })
 })
