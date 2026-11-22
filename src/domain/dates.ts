@@ -10,3 +10,8 @@ export function toLocalIsoDate(date: Date): IsoDate {
   const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
 }
+
+/** 2026-10-01 → 2026/10/01（訪問日などの表示） */
+export function formatSlashDate(date: IsoDate): string {
+  return date.replaceAll('-', '/')
+}

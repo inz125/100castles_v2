@@ -245,6 +245,7 @@ function App({
             element={
               <MapPage
                 book={state.book}
+                visits={visitState.status === 'ready' ? visitState.visits : undefined}
                 locationProvider={locationProvider}
                 preferenceStorage={preferenceStorage}
               />
