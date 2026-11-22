@@ -73,7 +73,7 @@ describe('setStampedDate', () => {
     expect(setStampedDate(record, '2026-05-05', TODAY)).toEqual(record)
   })
 
-  it.each(['', '2026-5-5', '2026/05/05', '2026-02-30', 'abc'])(
+  it.each(['', '2026-5-5', '2026/05/05', '2026-02-30', '2026-13-01', 'abc'])(
     '日付として正しくない値 "%s" では押印日は変わらない',
     (value) => {
       expect(setStampedDate(stamped, value, TODAY)).toEqual(stamped)
@@ -130,6 +130,7 @@ describe('isStampRecord', () => {
     { stampedOn: null, memo: 1 },
     { stampedOn: '2026/09/30', memo: '' },
     { stampedOn: '2026-02-30', memo: '' },
+    { stampedOn: '2026-13-40', memo: '' },
     { stampedOn: 20260930, memo: '' },
   ])('記録の形でなければ false（%o）', (value) => {
     expect(isStampRecord(value)).toBe(false)
