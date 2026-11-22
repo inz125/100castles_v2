@@ -103,6 +103,13 @@ npm run verify         # check + test:emulator + build（コミット前に必�
 - **Problem**: ルールの公開はクラウドのコンテナからできず（Firebase のログイン情報がない）、利用者の作業待ちで公開が止まった
 - **Try（実施済み）**: ルールを GitHub Actions から自動で公開する仕組みを用意した（#3。鍵の登録は利用者の作業）
 
+#### #2 追記: 公開（2026-11-22）
+
+- **Keep**: 利用者がスマホしか使えない状況でも、Google Cloud Shell（ブラウザ）で `firebase login --no-localhost` → `firebase deploy --only firestore:rules` を案内してルールを公開できた。ルール → 画面（PR のマージ）の順を守れた
+- **Keep**: 2 台の iPhone で、チェックの同期・外したときの同期・電波がないときの送信を確かめてもらい、問題がなかった
+- **Problem**: 公開後の確認で、手動で起動した CI（workflow_dispatch）では公開のジョブがすべてスキップされることに気づいた（条件が push だけ）
+- **Try**: 手動起動でも main なら公開するかは、必要になったら決める（今は push で足りている）
+
 ### #3 開発プロセスの見直し（SousChef にならう）（2026-11-22）
 
 - **背景**: 利用者から「SousChef を参考にルール（CLAUDE.md）と開発方法を作り替え、永続的なドキュメントを整理したい」と依頼があった
