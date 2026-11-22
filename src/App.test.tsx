@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { formatShareCode, type ShareCode } from './domain/shareCode'
 import type { LocationProvider } from './location/locationProvider'
+import { InMemoryMichinoekiVisitRepository } from './repository/inMemoryMichinoekiVisitRepository'
+import type { MichinoekiVisitRepository } from './repository/michinoekiVisitRepository'
 import { InMemoryStampBookRepository } from './repository/inMemoryStampBookRepository'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
 import type { CloudBookStore } from './sharing/cloudBookStore'
@@ -36,11 +38,13 @@ function renderApp(
   initialPath: InitialEntry = '/',
   locationProvider: LocationProvider = pendingLocation,
   cloud: CloudBookStore = new InMemoryCloudBookStore(),
+  michinoekiRepository: MichinoekiVisitRepository = new InMemoryMichinoekiVisitRepository(),
 ) {
   render(
     <MemoryRouter initialEntries={[initialPath]}>
       <App
         localRepository={repository}
+        michinoekiRepository={michinoekiRepository}
         cloud={cloud}
         preferenceStorage={localStorage}
         locationProvider={locationProvider}
@@ -324,14 +328,14 @@ describe('App', () => {
     const tabBar = () => screen.getByRole('navigation', { name: 'タブ' })
     const tab = (name: string) => within(tabBar()).getByRole('link', { name })
 
-    it('一覧・近く・地図のタブがあり、開いているタブが選択状態になる', async () => {
+    it('一覧・近く・地図・道の駅のタブがあり、開いているタブが選択状態になる', async () => {
       renderApp()
       await screen.findByRole('img', { name: /^全体 0\/100/ })
       expect(
         within(tabBar())
           .getAllByRole('link')
           .map((l) => l.textContent),
-      ).toEqual(['一覧', '近く', '地図'])
+      ).toEqual(['一覧', '近く', '地図', '道の駅'])
       expect(tab('一覧')).toHaveAttribute('aria-current', 'page')
       expect(tab('近く')).not.toHaveAttribute('aria-current')
     })
@@ -339,7 +343,7 @@ describe('App', () => {
     it('各タブにアイコンが付いている（読み上げはタブの名前だけ）', async () => {
       renderApp()
       await screen.findByRole('img', { name: /^全体 0\/100/ })
-      for (const name of ['一覧', '近く', '地図']) {
+      for (const name of ['一覧', '近く', '地図', '道の駅']) {
         const icon = tab(name).querySelector('svg')
         expect(icon).not.toBeNull()
         expect(icon).toHaveAttribute('aria-hidden', 'true')
@@ -638,5 +642,66 @@ describe('App', () => {
       )
       expect(screen.queryByRole('alert')).toBeNull()
     })
+  })
+})
+
+describe('App：道の駅タブ', () => {
+  const stationCheckbox = (name: RegExp) => screen.getByRole('checkbox', { name })
+
+  it('「道の駅」タブで道の駅の制覇ページを開く', async () => {
+    renderApp()
+    await screen.findByRole('img', { name: /^全体 0\/100/ })
+    const tabBar = screen.getByRole('navigation', { name: 'タブ' })
+    await userEvent.click(within(tabBar).getByRole('link', { name: '道の駅' }))
+    expect(screen.getByRole('heading', { level: 2, name: '道の駅' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /^全体 0\/135/ })).toBeInTheDocument()
+  })
+
+  it('行った駅にチェックすると今日の日付で保存し、制覇率に反映する', async () => {
+    const repo = new InMemoryMichinoekiVisitRepository()
+    renderApp(undefined, '/michinoeki', pendingLocation, undefined, repo)
+    await userEvent.click(await screen.findByRole('checkbox', { name: /豊根グリーンポート宮嶋/ }))
+
+    expect(stationCheckbox(/豊根グリーンポート宮嶋/)).toBeChecked()
+    expect(screen.getByRole('img', { name: /^全体 1\/135/ })).toBeInTheDocument()
+    expect(screen.getByText('2026/09/30 訪問')).toBeInTheDocument()
+    expect(await repo.load()).toEqual({ 1: '2026-09-30' })
+  })
+
+  it('チェックを外すと行っていないことにして保存する', async () => {
+    const repo = new InMemoryMichinoekiVisitRepository()
+    await repo.saveVisit(1, '2026-08-01')
+    renderApp(undefined, '/michinoeki', pendingLocation, undefined, repo)
+    await userEvent.click(await screen.findByRole('checkbox', { name: /豊根グリーンポート宮嶋/ }))
+
+    expect(stationCheckbox(/豊根グリーンポート宮嶋/)).not.toBeChecked()
+    expect(await repo.load()).toEqual({})
+  })
+
+  it('保存に失敗したら元に戻し、「保存できませんでした」と表示する', async () => {
+    const repo: MichinoekiVisitRepository = {
+      load: async () => ({}),
+      saveVisit: () => Promise.reject(new Error('失敗')),
+    }
+    renderApp(undefined, '/michinoeki', pendingLocation, undefined, repo)
+    await userEvent.click(await screen.findByRole('checkbox', { name: /豊根グリーンポート宮嶋/ }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('保存できませんでした')
+    expect(stationCheckbox(/豊根グリーンポート宮嶋/)).not.toBeChecked()
+  })
+
+  it('訪問帳が新しい形式なら「アプリを更新してください」と表示する', async () => {
+    const repo: MichinoekiVisitRepository = {
+      load: () => Promise.reject(new UnsupportedVersionError(2)),
+      saveVisit: async () => {},
+    }
+    renderApp(undefined, '/michinoeki', pendingLocation, undefined, repo)
+    expect(await screen.findByRole('alert')).toHaveTextContent('アプリを更新してください')
+  })
+
+  it('絞り込みの選択を覚えておく', async () => {
+    renderApp(undefined, '/michinoeki')
+    await userEvent.click(await screen.findByRole('button', { name: '未訪問' }))
+    expect(localStorage.getItem('castles100.michinoekiFilter')).toBe('unvisited')
   })
 })

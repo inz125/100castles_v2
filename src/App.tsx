@@ -12,6 +12,8 @@ import {
 } from './domain/stampBook'
 import type { IsoDate, StampRecord } from './domain/stampRecord'
 import type { LocationProvider } from './location/locationProvider'
+import type { VisitBook, VisitFilter } from './domain/michinoekiVisits'
+import type { MichinoekiVisitRepository } from './repository/michinoekiVisitRepository'
 import { UnsupportedVersionError, type StampBookRepository } from './repository/stampBookRepository'
 import type { CloudBookStore } from './sharing/cloudBookStore'
 import { joinSharing } from './sharing/joinSharing'
@@ -29,15 +31,19 @@ import {
   type FilterPreference,
 } from './ui/filterPreference'
 import { MapPage } from './ui/MapPage'
+import { MichinoekiPage } from './ui/MichinoekiPage'
 import { NearbyPage } from './ui/NearbyPage'
 import { SharePage } from './ui/SharePage'
 import { SyncStatusText } from './ui/SyncStatusText'
 import { TabBar } from './ui/TabBar'
 import { useOnline } from './ui/useOnline'
+import { loadVisitFilter, saveVisitFilter } from './ui/visitFilterPreference'
 
 type Props = {
   /** 共有していないときに使う端末内の記録帳 */
   localRepository: StampBookRepository
+  /** 道の駅の訪問帳（端末内のみ。共有はしない） */
+  michinoekiRepository: MichinoekiVisitRepository
   /** 共有中に使うクラウドの記録帳（Firebase をつなぐまでは未設定で、端末内の記録帳を使う） */
   cloud?: CloudBookStore
   /** 絞り込みの選択や共有の設定など、端末ごとの設定を保存する先 */
@@ -53,6 +59,7 @@ type LoadState =
 
 function App({
   localRepository,
+  michinoekiRepository,
   cloud,
   preferenceStorage,
   locationProvider,
@@ -62,6 +69,14 @@ function App({
   const [filter, changeFilter] = useSavedFilter(preferenceStorage, LIST_FILTER)
   const [nearbyFilter, changeNearbyFilter] = useSavedFilter(preferenceStorage, NEARBY_FILTER)
   const [saveFailed, setSaveFailed] = useState(false)
+  const visitState = useMichinoekiVisits(michinoekiRepository, () => toLocalIsoDate(now()))
+  const [visitFilter, setVisitFilter] = useState<VisitFilter>(() =>
+    loadVisitFilter(preferenceStorage),
+  )
+  const changeVisitFilter = (next: VisitFilter) => {
+    setVisitFilter(next)
+    saveVisitFilter(preferenceStorage, next)
+  }
   // 押印したときの演出（地方や 100 城が揃えば制覇の演出）（揃うたびに作り直すため、回数も持つ）
   const [celebration, setCelebration] = useState<{ effect: StampEffect; count: number } | null>(
     null,
@@ -158,7 +173,7 @@ function App({
       </header>
       {state.status === 'loading' && <p className="empty">読み込み中…</p>}
       {state.status === 'error' && <LoadError error={state.error} />}
-      {saveFailed && (
+      {(saveFailed || visitState.saveFailed) && (
         <p role="alert" className="alert">
           保存できませんでした。もう一度お試しください。
         </p>
@@ -190,6 +205,23 @@ function App({
                 locationProvider={locationProvider}
                 preferenceStorage={preferenceStorage}
               />
+            }
+          />
+          <Route
+            path="michinoeki"
+            element={
+              visitState.status === 'ready' ? (
+                <MichinoekiPage
+                  visits={visitState.visits}
+                  filter={visitFilter}
+                  onFilterChange={changeVisitFilter}
+                  onVisitChange={visitState.changeVisit}
+                />
+              ) : visitState.status === 'error' ? (
+                <LoadError error={visitState.error} />
+              ) : (
+                <p className="empty">読み込み中…</p>
+              )
             }
           />
           <Route
@@ -226,6 +258,57 @@ function App({
       )}
     </main>
   )
+}
+
+type VisitLoadState =
+  | { status: 'loading' }
+  | { status: 'ready'; visits: VisitBook }
+  | { status: 'error'; error: unknown }
+
+/**
+ * 道の駅の訪問帳を読み込み、行った／行っていないの切り替えを保存する。
+ * 画面にはすぐ反映し、保存に失敗したら元に戻す（城の記録と同じ考え方）
+ */
+function useMichinoekiVisits(repository: MichinoekiVisitRepository, today: () => IsoDate) {
+  const [state, setState] = useState<VisitLoadState>({ status: 'loading' })
+  const [saveFailed, setSaveFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    repository.load().then(
+      (visits) => !cancelled && setState({ status: 'ready', visits }),
+      (error: unknown) => !cancelled && setState({ status: 'error', error }),
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [repository])
+
+  const replaceVisit = (stationId: number, visitedOn: IsoDate | undefined) => {
+    setState((s) => {
+      if (s.status !== 'ready') return s
+      const visits = { ...s.visits }
+      if (visitedOn === undefined) delete visits[stationId]
+      else visits[stationId] = visitedOn
+      return { status: 'ready', visits }
+    })
+  }
+
+  const changeVisit = async (stationId: number, visited: boolean) => {
+    if (state.status !== 'ready') return
+    const previous = state.visits[stationId]
+    const next = visited ? (previous ?? today()) : undefined
+    replaceVisit(stationId, next)
+    setSaveFailed(false)
+    try {
+      await repository.saveVisit(stationId, next ?? null)
+    } catch {
+      replaceVisit(stationId, previous)
+      setSaveFailed(true)
+    }
+  }
+
+  return { ...state, saveFailed, changeVisit }
 }
 
 /** 絞り込みの選択。変えるたびに保存し、次回も使う */
