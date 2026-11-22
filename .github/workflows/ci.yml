@@ -1,0 +1,122 @@
+# すべての push と PR でチェックを流す。main に入ったら、すべて通った場合だけ公開する（docs/deploy.md）
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# 既定ではリポジトリの読み取りだけを許す
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # 整形・lint・型チェック・単体/コンポーネントテスト
+      - run: npm run check
+      - run: npm run build
+      # ワークフロー（公開の手順を含む）の書き間違いを検出する
+      - run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
+
+  # Firestore エミュレータで、クラウドの記録帳とセキュリティルールを確かめる
+  emulator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      # Firestore エミュレータは Java で動く
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ hashFiles('package-lock.json') }}
+      - run: npm ci
+      - run: npm run test:emulator
+
+  # Firestore のルールを公開する（アプリより先。D-86・docs/deploy.md）。
+  # 鍵は GitHub の Environment「production」に置き、main からの実行にだけ渡す。
+  # 鍵が未登録なら公開をスキップして成功させる（そのときは手で公開する。docs/deploy.md）
+  rules:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [check, emulator]
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: production
+    steps:
+      - name: 公開の設定を確認
+        id: configured
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::notice::FIREBASE_SERVICE_ACCOUNT が未登録のため Firestore のルールの公開をスキップしました（docs/deploy.md）"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - if: steps.configured.outputs.ready == 'true'
+        uses: actions/checkout@v7
+      - if: steps.configured.outputs.ready == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      # パッケージのインストール時に動くスクリプトから鍵が見えないよう、鍵は使う手順にだけ渡す
+      - if: steps.configured.outputs.ready == 'true'
+        run: npm ci
+      - name: Firestore のルールを公開
+        if: steps.configured.outputs.ready == 'true'
+        run: |
+          key="$RUNNER_TEMP/firebase-service-account.json"
+          trap 'rm -f "$key"' EXIT
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$key"
+          GOOGLE_APPLICATION_CREDENTIALS="$key" npx firebase deploy --only firestore:rules --non-interactive
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+  build-pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  # 画面を GitHub Pages に公開する。公開は 1 つずつ行い、途中の公開は取り消さない
+  deploy-pages:
+    needs: build-pages
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

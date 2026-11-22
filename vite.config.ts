@@ -51,5 +51,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     // 日付の扱いを実際の利用環境（日本）と同じ条件でテストする
     env: { TZ: 'Asia/Tokyo' },
+    // 毎回ランダムな順で実行し、テスト同士が順番に依存していないことを確かめる
+    sequence: { shuffle: true },
   },
 })
