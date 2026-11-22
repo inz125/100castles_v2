@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, type InitialEntry } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -717,8 +717,65 @@ describe('App：道の駅タブ', () => {
     await screen.findByRole('img', { name: /^全体 0\/100/ })
     const tabBar = screen.getByRole('navigation', { name: 'タブ' })
     await userEvent.click(within(tabBar).getByRole('link', { name: '道の駅' }))
-    expect(screen.getByRole('heading', { level: 2, name: '道の駅' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: '道の駅' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: /^全体 0\/135/ })).toBeInTheDocument()
+  })
+
+  describe('画面の一番上（D-67）', () => {
+    const appTitle = () => screen.queryByRole('heading', { name: '100名城スタンプ帳' })
+
+    it('道の駅タブではアプリ名を出さず、一番上の見出しは「道の駅」', async () => {
+      renderApp(undefined, '/michinoeki')
+      const heading = await screen.findByRole('heading', { level: 1, name: '道の駅' })
+      expect(appTitle()).toBeNull()
+      expect(screen.getAllByRole('heading', { level: 1 })).toEqual([heading])
+      expect(screen.getByText('中部「道の駅」スタンプブックの駅')).toBeInTheDocument()
+    })
+
+    it.each(['/', '/nearby', '/map', '/castles/59', '/share'])(
+      'ほかの画面（%s）では今までどおりアプリ名を出す',
+      async (path) => {
+        renderApp(undefined, path)
+        expect(
+          await screen.findByRole('heading', { level: 1, name: '100名城スタンプ帳' }),
+        ).toBeInTheDocument()
+      },
+    )
+
+    it('訪問帳の読み込み中・失敗のときもアプリ名を出さない', async () => {
+      const loading: MichinoekiVisitRepository = {
+        load: () => new Promise(() => {}),
+        saveVisit: async () => {},
+        subscribe: () => () => {},
+      }
+      renderApp(undefined, '/michinoeki', pendingLocation, undefined, loading)
+      // 先に出る城の記録帳の「読み込み中…」が消え、訪問帳の読み込み待ちになるまで待つ
+      await act(async () => {})
+      expect(screen.getByText('読み込み中…')).toBeInTheDocument()
+      expect(appTitle()).toBeNull()
+
+      cleanup()
+      const failing: MichinoekiVisitRepository = {
+        load: () => Promise.reject(new UnsupportedVersionError(2)),
+        saveVisit: async () => {},
+        subscribe: () => () => {},
+      }
+      renderApp(undefined, '/michinoeki', pendingLocation, undefined, failing)
+      expect(await screen.findByRole('alert')).toHaveTextContent('アプリを更新してください')
+      expect(appTitle()).toBeNull()
+    })
+
+    it('タブを切り替えると、アプリ名が出たり消えたりする', async () => {
+      renderApp()
+      await screen.findByRole('img', { name: /^全体 0\/100/ })
+      const tab = (name: string) =>
+        within(screen.getByRole('navigation', { name: 'タブ' })).getByRole('link', { name })
+      await userEvent.click(tab('道の駅'))
+      await screen.findByRole('heading', { level: 1, name: '道の駅' })
+      expect(appTitle()).toBeNull()
+      await userEvent.click(tab('近く'))
+      expect(appTitle()).toBeInTheDocument()
+    })
   })
 
   it('行った駅にチェックすると今日の日付で保存し、制覇率に反映する', async () => {

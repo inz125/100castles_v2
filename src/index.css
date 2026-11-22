@@ -1365,7 +1365,8 @@ textarea {
 
 /* ===== 道の駅タブ：制覇のダッシュボード ===== */
 .station-hero {
-  padding: 8px 0 16px;
+  /* アプリ名の見出しがないので、その分の余白を上に取る（D-67） */
+  padding: 20px 0 16px;
 }
 
 .station-hero__lead {

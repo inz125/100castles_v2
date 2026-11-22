@@ -56,9 +56,9 @@ export function MichinoekiPage({ visits, filter, onFilterChange, onVisitChange }
   return (
     <div className="page station-page">
       <section className="station-hero" aria-labelledby="station-hero-title">
-        <h2 id="station-hero-title" className="page__title station-hero__title">
+        <h1 id="station-hero-title" className="app-title station-hero__title">
           道の駅
-        </h2>
+        </h1>
         <p className="station-hero__lead">中部「道の駅」スタンプブックの駅</p>
         <div className="station-hero__main">
           <ProgressRing label="全体" progress={overall} className="station-hero__ring">

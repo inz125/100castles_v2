@@ -83,6 +83,8 @@ function App({
   const dismissCelebration = useCallback(() => setCelebration(null), [])
   // 「共有」は一覧タブの見出しにだけ出す
   const isListTab = useMatch('/') !== null
+  // 道の駅タブでは一番上にアプリ名を出さない（D-67）
+  const isMichinoekiTab = useMatch('/michinoeki') !== null
   // 共有中の共有コード（共有していない、またはクラウドが使えなければ null）
   const [shareCode, setShareCode] = useState<ShareCode | null>(() =>
     cloud ? (loadShareSettings(preferenceStorage)?.code ?? null) : null,
@@ -184,17 +186,19 @@ function App({
 
   return (
     <main className="app">
-      <header className="app-header">
-        <h1 className="app-title">100名城スタンプ帳</h1>
-        {isListTab && (
-          <div className="app-header__actions">
-            {syncStatus && <SyncStatusText status={syncStatus} className="app-header__sync" />}
-            <Link to="/share" className="app-header__share">
-              共有
-            </Link>
-          </div>
-        )}
-      </header>
+      {!isMichinoekiTab && (
+        <header className="app-header">
+          <h1 className="app-title">100名城スタンプ帳</h1>
+          {isListTab && (
+            <div className="app-header__actions">
+              {syncStatus && <SyncStatusText status={syncStatus} className="app-header__sync" />}
+              <Link to="/share" className="app-header__share">
+                共有
+              </Link>
+            </div>
+          )}
+        </header>
+      )}
       {state.status === 'loading' && <p className="empty">読み込み中…</p>}
       {state.status === 'error' && <LoadError error={state.error} />}
       {(saveFailed || visitState.saveFailed) && (

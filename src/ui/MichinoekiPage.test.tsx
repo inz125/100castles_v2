@@ -84,6 +84,11 @@ describe('MichinoekiPage', () => {
       expect(within(aichi).getByRole('heading', { level: 2 })).not.toHaveTextContent('制覇')
     })
 
+    it('ページの見出し「道の駅」は最上位の見出し（h1）', () => {
+      renderPage()
+      expect(screen.getByRole('heading', { level: 1, name: '道の駅' })).toBeInTheDocument()
+    })
+
     describe('県をタップしたとき', () => {
       let scrolled: Element[]
       beforeEach(() => {
@@ -124,12 +129,9 @@ describe('MichinoekiPage', () => {
   describe('駅の一覧', () => {
     it('県ごとの見出しの下に、すべての駅を行ったかどうかのチェックつきで表示する', () => {
       renderPage({})
-      expect(
-        screen
-          .getAllByRole('heading', { level: 2 })
-          .slice(1)
-          .map((h) => h.textContent),
-      ).toEqual(MICHINOEKI_PREFECTURES.map((p) => expect.stringContaining(p)))
+      expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(
+        MICHINOEKI_PREFECTURES.map((p) => expect.stringContaining(p)),
+      )
       expect(screen.getAllByRole('checkbox')).toHaveLength(michinoeki.length)
       expect(
         screen.getAllByRole('checkbox').filter((c) => (c as HTMLInputElement).checked),
