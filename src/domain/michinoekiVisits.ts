@@ -78,3 +78,20 @@ export function visitsToImport(local: VisitBook, cloudStationIds: ReadonlySet<nu
     Object.entries(local).filter(([id]) => !cloudStationIds.has(Number(id))),
   ) as VisitBook
 }
+
+/**
+ * 県ごとの番号（D-68）：駅の番号 → その県の中での番号（1 から）。
+ * 駅マスタの番号順に県ごとに数える。絞り込みに関係なく、マスタ全体から決める
+ */
+export function michinoekiPrefectureNumbers(
+  targets: readonly Michinoeki[] = michinoeki,
+): ReadonlyMap<number, number> {
+  const counts = new Map<string, number>()
+  const numbers = new Map<number, number>()
+  for (const station of targets.toSorted((a, b) => a.id - b.id)) {
+    const next = (counts.get(station.prefecture) ?? 0) + 1
+    counts.set(station.prefecture, next)
+    numbers.set(station.id, next)
+  }
+  return numbers
+}

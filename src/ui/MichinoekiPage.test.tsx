@@ -145,6 +145,28 @@ describe('MichinoekiPage', () => {
       expect(screen.getByText('2026/09/30 訪問')).toBeInTheDocument()
     })
 
+    it('各駅の行に県ごとの番号を出す（D-68）', () => {
+      renderPage({})
+      const aichi = screen.getByRole('region', { name: /愛知県/ })
+      const rows = within(aichi).getAllByRole('listitem')
+      expect(rows[0]).toHaveTextContent(/^1\s*豊根グリーンポート宮嶋/)
+      expect(rows[18]).toHaveTextContent(/^19/)
+      const gifu = screen.getByRole('region', { name: /岐阜県/ })
+      expect(within(gifu).getAllByRole('listitem')[0]).toHaveTextContent(/^1\D/)
+      // 読み上げ名は今までどおり
+      expect(
+        within(rows[0]).getByRole('checkbox', { name: '道の駅 豊根グリーンポート宮嶋' }),
+      ).toBeInTheDocument()
+    })
+
+    it('絞り込んでも番号は変わらない', () => {
+      const second = michinoeki.find((s) => s.id === AICHI[1])!
+      renderPage({ [second.id]: '2026-10-01' }, 'visited')
+      const rows = within(screen.getByRole('region', { name: /愛知県/ })).getAllByRole('listitem')
+      expect(rows).toHaveLength(1)
+      expect(rows[0]).toHaveTextContent(new RegExp(`^2\\s*${second.name}`))
+    })
+
     it('チェックを切り替えると、その駅と切り替え後の状態を知らせる', async () => {
       const { onVisitChange } = renderPage()
       const station = michinoeki.find((s) => s.id === AICHI[1])!
