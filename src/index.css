@@ -1551,6 +1551,15 @@ textarea {
   background: var(--vermilion-soft);
 }
 
+.station-row__number {
+  flex: none;
+  width: 2em;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 .station-row__icon {
   flex: none;
   width: 22px;

@@ -4,6 +4,7 @@ import {
   completedPrefectureCount,
   filterPrefectureGroups,
   groupByPrefecture,
+  michinoekiPrefectureNumbers,
   visitProgressOf,
   type MichinoekiPrefecture,
   type PrefectureGroup,
@@ -16,6 +17,9 @@ import { FilterControl, type FilterOption } from './FilterControl'
 import { scrollBehavior } from './motion'
 import { ProgressRing } from './ProgressRing'
 import { StationPinIcon } from './StationPinIcon'
+
+/** 県ごとの番号（D-68）。マスタから決まるので 1 回だけ数える */
+const PREFECTURE_NUMBERS = michinoekiPrefectureNumbers()
 
 const VISIT_FILTER_OPTIONS: readonly FilterOption<VisitFilter>[] = [
   { value: 'all', label: 'すべて' },
@@ -209,6 +213,7 @@ function StationRow({
   const visited = visitedOn !== undefined
   return (
     <label className={['station-row', visited && 'station-row--visited'].filter(Boolean).join(' ')}>
+      <span className="station-row__number">{PREFECTURE_NUMBERS.get(station.id)}</span>
       <StationPinIcon className="station-row__icon" />
       <span className="station-row__body">
         <span className="station-row__name">{station.name}</span>

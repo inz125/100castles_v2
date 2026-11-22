@@ -5,6 +5,7 @@ import {
   filterPrefectureGroups,
   groupByPrefecture,
   isVisited,
+  michinoekiPrefectureNumbers,
   MICHINOEKI_PREFECTURES,
   visitProgressOf,
   visitsToImport,
@@ -77,5 +78,30 @@ describe('訪問帳の取り込み', () => {
 
   it('端末に記録がなければ何も取り込まない', () => {
     expect(visitsToImport({}, new Set())).toEqual({})
+  })
+})
+
+describe('県ごとの番号（D-68）', () => {
+  const numbers = michinoekiPrefectureNumbers()
+
+  it.each([
+    ['愛知県', 19],
+    ['岐阜県', 53],
+    ['三重県', 18],
+    ['静岡県', 27],
+    ['長野県', 18],
+  ])('%s は駅マスタの番号順に 1 から %i まで欠けずに並ぶ', (prefecture, count) => {
+    const ids = idsIn(prefecture).toSorted((a, b) => a - b)
+    expect(ids.map((id) => numbers.get(id))).toEqual(Array.from({ length: count }, (_, i) => i + 1))
+  })
+
+  it('すべての駅に番号がある', () => {
+    expect(michinoeki.every((s) => numbers.has(s.id))).toBe(true)
+  })
+
+  it('愛知県の最初の駅（豊根グリーンポート宮嶋）は 1、岐阜県の最初の駅も 1', () => {
+    const toyone = michinoeki.find((s) => s.name === '豊根グリーンポート宮嶋')!
+    expect(numbers.get(toyone.id)).toBe(1)
+    expect(numbers.get(idsIn('岐阜県')[0])).toBe(1)
   })
 })
