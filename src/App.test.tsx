@@ -180,6 +180,26 @@ describe('App：共有中', () => {
       expect(await localVisits.load()).toEqual({})
     })
 
+    it('地図の吹き出しで「行った」にすると、クラウドの訪問帳に保存する（D-48）', async () => {
+      const cloud = await sharedCloud()
+      const localVisits = new InMemoryMichinoekiVisitRepository()
+      renderApp(undefined, '/map', pendingLocation, cloud, localVisits)
+      const pin = await waitFor(() => {
+        expect(toyoneStationPin()).toBeDefined()
+        return toyoneStationPin()!
+      })
+      fireEvent.click(pin)
+      const popup = await screen.findByRole('dialog', {
+        name: '道の駅 豊根グリーンポート宮嶋の情報',
+      })
+      await userEvent.click(within(popup).getByRole('button', { name: '行った' }))
+
+      await waitFor(async () =>
+        expect(await cloud.openVisits(CODE).load()).toEqual({ 1: '2026-09-30' }),
+      )
+      expect(await localVisits.load()).toEqual({})
+    })
+
     it('もう 1 人の変更が、開き直さなくても画面に反映される', async () => {
       const cloud = await sharedCloud()
       renderApp(undefined, '/michinoeki', pendingLocation, cloud)
@@ -419,6 +439,89 @@ describe('App', () => {
       renderApp(undefined, '/map', pendingLocation, undefined, loading)
       await waitFor(() => expect(toyonePin()).toHaveClass('station-pin--unvisited'))
       expect(document.querySelectorAll('.map-pin')).toHaveLength(100)
+    })
+
+    describe('吹き出しから訪問を切り替える（D-48）', () => {
+      const toyonePopup = () =>
+        screen.findByRole('dialog', { name: '道の駅 豊根グリーンポート宮嶋の情報' })
+
+      /** 豊根グリーンポート宮嶋のピンが立つのを待ってタップする */
+      async function openToyone() {
+        const pin = await waitFor(() => {
+          expect(toyonePin()).toBeDefined()
+          return toyonePin()!
+        })
+        fireEvent.click(pin)
+        return toyonePopup()
+      }
+
+      async function openMichinoekiTab() {
+        const tabBar = screen.getByRole('navigation', { name: 'タブ' })
+        await userEvent.click(within(tabBar).getByRole('link', { name: '道の駅' }))
+        return screen.findByRole('checkbox', { name: /豊根グリーンポート宮嶋/ })
+      }
+
+      it('「行った」で今日の訪問として保存し、吹き出しは開いたまま、道の駅タブにも反映する', async () => {
+        const repo = new InMemoryMichinoekiVisitRepository()
+        renderApp(undefined, '/map', pendingLocation, undefined, repo)
+        const popup = await openToyone()
+        expect(popup).toHaveTextContent('未訪問')
+
+        await userEvent.click(within(popup).getByRole('button', { name: '行った' }))
+
+        const updated = await toyonePopup()
+        expect(updated).toHaveTextContent('2026/09/30 訪問')
+        expect(within(updated).getByRole('button', { name: '未訪問に戻す' })).toBeInTheDocument()
+        await waitFor(() => expect(toyonePin()).toHaveClass('station-pin--visited'))
+        expect(await repo.load()).toEqual({ 1: '2026-09-30' })
+        expect(await openMichinoekiTab()).toBeChecked()
+      })
+
+      it('「未訪問に戻す」で行っていないことにし、道の駅タブにも反映する', async () => {
+        const repo = new InMemoryMichinoekiVisitRepository()
+        await repo.saveVisit(1, '2026-08-01')
+        renderApp(undefined, '/map', pendingLocation, undefined, repo)
+        const popup = await openToyone()
+        expect(popup).toHaveTextContent('2026/08/01 訪問')
+
+        await userEvent.click(within(popup).getByRole('button', { name: '未訪問に戻す' }))
+
+        const updated = await toyonePopup()
+        expect(updated).toHaveTextContent('未訪問')
+        expect(within(updated).getByRole('button', { name: '行った' })).toBeInTheDocument()
+        await waitFor(() => expect(toyonePin()).toHaveClass('station-pin--unvisited'))
+        expect(await repo.load()).toEqual({})
+        expect(await openMichinoekiTab()).not.toBeChecked()
+      })
+
+      it('保存に失敗したら元に戻し、「保存できませんでした」と表示する', async () => {
+        const repo: MichinoekiVisitRepository = {
+          load: async () => ({}),
+          saveVisit: () => Promise.reject(new Error('失敗')),
+          subscribe: () => () => {},
+        }
+        renderApp(undefined, '/map', pendingLocation, undefined, repo)
+        const popup = await openToyone()
+        await userEvent.click(within(popup).getByRole('button', { name: '行った' }))
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('保存できませんでした')
+        const reverted = await toyonePopup()
+        expect(reverted).toHaveTextContent('未訪問')
+        expect(within(reverted).getByRole('button', { name: '行った' })).toBeInTheDocument()
+        expect(toyonePin()).toHaveClass('station-pin--unvisited')
+      })
+
+      it('訪問帳を読み込み中は切り替えのボタンを出さない', async () => {
+        const loading: MichinoekiVisitRepository = {
+          load: () => new Promise(() => {}),
+          saveVisit: async () => {},
+          subscribe: () => () => {},
+        }
+        renderApp(undefined, '/map', pendingLocation, undefined, loading)
+        const popup = await openToyone()
+        expect(popup).toHaveTextContent('未訪問')
+        expect(within(popup).queryByRole('button')).toBeNull()
+      })
     })
   })
 

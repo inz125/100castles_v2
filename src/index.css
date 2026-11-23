@@ -402,6 +402,52 @@ textarea {
   line-height: 1;
 }
 
+/* 吹き出しで道の駅の行った／行っていないを切り替える（D-48） */
+.map .map-popup__visit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 132px;
+  min-height: var(--tap);
+  margin-top: 8px;
+  padding: 0 16px;
+  border: 1.5px solid var(--vermilion);
+  border-radius: 999px;
+  background: var(--vermilion);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+}
+
+/* 未訪問に戻すは押し間違えないよう控えめに */
+.map .map-popup__visit--undo {
+  border-color: var(--line);
+  background: transparent;
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+.map-popup__visit-check {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.map-popup__visit-check::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--vermilion);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
 /* ===== 共有画面 ===== */
 .share-page .page__title {
   margin: 4px 0 16px;
