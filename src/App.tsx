@@ -248,6 +248,7 @@ function App({
                 visits={visitState.status === 'ready' ? visitState.visits : undefined}
                 locationProvider={locationProvider}
                 preferenceStorage={preferenceStorage}
+                onVisitChange={visitState.changeVisit}
               />
             }
           />

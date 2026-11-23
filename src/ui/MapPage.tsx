@@ -99,10 +99,19 @@ type Props = {
   locationProvider: LocationProvider
   /** 表示位置と拡大率を覚えておく先 */
   preferenceStorage: Storage
+  /** 吹き出しで道の駅の行った／行っていないを切り替えたとき（D-48） */
+  onVisitChange?: (stationId: number, visited: boolean) => void
 }
 
 /** 地図タブ：100 城すべてをピンで表示する（絞り込みなし） */
-export function MapPage({ book, visits = NO_VISITS, locationProvider, preferenceStorage }: Props) {
+export function MapPage({
+  book,
+  visits: loadedVisits,
+  locationProvider,
+  preferenceStorage,
+  onVisitChange,
+}: Props) {
+  const visits = loadedVisits ?? NO_VISITS
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   // 吹き出しを開いている城の番号
@@ -308,7 +317,16 @@ export function MapPage({ book, visits = NO_VISITS, locationProvider, preference
         )}
       {selectedStation &&
         createPortal(
-          <StationPopup station={selectedStation} visitedOn={visits[selectedStation.id]} />,
+          <StationPopup
+            station={selectedStation}
+            visitedOn={visits[selectedStation.id]}
+            // 訪問帳を読み込み中・読み込めないときは切り替えられない（D-48）
+            onVisitChange={
+              loadedVisits && onVisitChange
+                ? (visited) => onVisitChange(selectedStation.id, visited)
+                : undefined
+            }
+          />,
           stationPopupContent,
         )}
     </section>
@@ -330,7 +348,14 @@ function CastlePopup({ castle, record }: { castle: Castle; record: StampRecord }
   )
 }
 
-function StationPopup({ station, visitedOn }: { station: Michinoeki; visitedOn?: IsoDate }) {
+type StationPopupProps = {
+  station: Michinoeki
+  visitedOn?: IsoDate
+  /** 行った／行っていないを切り替える。切り替えられないとき（訪問帳を読み込み中など）は undefined */
+  onVisitChange?: (visited: boolean) => void
+}
+
+function StationPopup({ station, visitedOn, onVisitChange }: StationPopupProps) {
   return (
     <div role="dialog" aria-label={`道の駅 ${station.name}の情報`} className="map-popup">
       <p className="map-popup__name">道の駅 {station.name}</p>
@@ -338,6 +363,21 @@ function StationPopup({ station, visitedOn }: { station: Michinoeki; visitedOn?:
       <p className="map-popup__status">
         {visitedOn ? `${formatSlashDate(visitedOn)} 訪問` : '未訪問'}
       </p>
+      {onVisitChange &&
+        (visitedOn ? (
+          <button
+            type="button"
+            className="map-popup__visit map-popup__visit--undo"
+            onClick={() => onVisitChange(false)}
+          >
+            未訪問に戻す
+          </button>
+        ) : (
+          <button type="button" className="map-popup__visit" onClick={() => onVisitChange(true)}>
+            <span className="map-popup__visit-check" aria-hidden="true" />
+            行った
+          </button>
+        ))}
     </div>
   )
 }

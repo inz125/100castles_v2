@@ -13,12 +13,18 @@ import { loadMapView, saveMapView } from './mapViewPreference'
 /** 現在地の取得が終わらない窓口 */
 const pendingLocation: LocationProvider = { getCurrentPosition: () => new Promise(() => {}) }
 
-function page(book: StampBook, locationProvider: LocationProvider, visits?: VisitBook) {
+function page(
+  book: StampBook,
+  locationProvider: LocationProvider,
+  visits?: VisitBook,
+  onVisitChange: (stationId: number, visited: boolean) => void = () => {},
+) {
   return (
     <MemoryRouter initialEntries={['/map']}>
       <MapPage
         book={book}
         visits={visits}
+        onVisitChange={onVisitChange}
         locationProvider={locationProvider}
         preferenceStorage={localStorage}
       />
@@ -359,6 +365,60 @@ describe('MapPage：道の駅', () => {
       renderPage({}, pendingLocation, { [a.id]: '2026-10-01' })
       await userEvent.click(toggle())
       expect(stationPins()).toHaveLength(0)
+    })
+  })
+
+  describe('吹き出しから訪問を切り替える（D-48）', () => {
+    const [a, b] = michinoeki
+    const pinOfStation = (id: number) =>
+      stationPins().find((p) => p.title === `道の駅 ${michinoeki.find((s) => s.id === id)!.name}`)!
+    const popupOf = (name: string) => screen.getByRole('dialog', { name: `道の駅 ${name}の情報` })
+
+    it('行っていない駅は「行った」、行った駅は「未訪問に戻す」のボタンを出す', () => {
+      renderPage({}, pendingLocation, { [a.id]: '2026-10-01' })
+      fireEvent.click(pinOfStation(a.id))
+      expect(
+        within(popupOf(a.name)).getByRole('button', { name: '未訪問に戻す' }),
+      ).toBeInTheDocument()
+      expect(within(popupOf(a.name)).queryByRole('button', { name: '行った' })).toBeNull()
+
+      fireEvent.click(pinOfStation(b.id))
+      expect(within(popupOf(b.name)).getByRole('button', { name: '行った' })).toBeInTheDocument()
+      expect(within(popupOf(b.name)).queryByRole('button', { name: '未訪問に戻す' })).toBeNull()
+    })
+
+    it('押すと駅の番号と、行ったかどうかを伝える', async () => {
+      const changes: [number, boolean][] = []
+      render(
+        page({}, pendingLocation, { [a.id]: '2026-10-01' }, (id, visited) =>
+          changes.push([id, visited]),
+        ),
+      )
+      fireEvent.click(pinOfStation(b.id))
+      await userEvent.click(within(popupOf(b.name)).getByRole('button', { name: '行った' }))
+      fireEvent.click(pinOfStation(a.id))
+      await userEvent.click(within(popupOf(a.name)).getByRole('button', { name: '未訪問に戻す' }))
+      expect(changes).toEqual([
+        [b.id, true],
+        [a.id, false],
+      ])
+    })
+
+    it('訪問帳が変わると、開いたままの吹き出しのボタンも変わる', () => {
+      const { rerender } = renderPage({}, pendingLocation, {})
+      fireEvent.click(pinOfStation(b.id))
+      expect(within(popupOf(b.name)).getByRole('button', { name: '行った' })).toBeInTheDocument()
+
+      rerender(page({}, pendingLocation, { [b.id]: '2026-11-03' }))
+      expect(
+        within(popupOf(b.name)).getByRole('button', { name: '未訪問に戻す' }),
+      ).toBeInTheDocument()
+    })
+
+    it('訪問帳がない（読み込み中・読み込めない）ときはボタンを出さない', () => {
+      renderPage()
+      fireEvent.click(pinOfStation(a.id))
+      expect(within(popupOf(a.name)).queryByRole('button')).toBeNull()
     })
   })
 })
