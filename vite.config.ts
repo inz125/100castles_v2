@@ -16,8 +16,8 @@ export default defineConfig({
       // 新しい版は自動では切り替えず、ポップアップの「更新」で切り替える（D-08）
       registerType: 'prompt',
       manifest: {
-        name: '100名城スタンプ帳',
-        short_name: '100名城',
+        name: '100名城/道の駅',
+        short_name: '100名城/道の駅',
         description: '日本100名城の押印記録をつけるスタンプ帳',
         lang: 'ja',
         start_url: '.',
@@ -29,13 +29,7 @@ export default defineConfig({
           { src: 'icons/pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'icons/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          // 印は中央の安全領域に収めてあるので、同じ画像をマスカブルアイコンにも使う
-          {
-            src: 'icons/pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
-          },
+          // 斜めに分けた絵は円く切り取られると欠けるので、マスカブルアイコンの指定はしない（D-94）
         ],
       },
       workbox: {
